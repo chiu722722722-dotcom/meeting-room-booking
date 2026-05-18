@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>會議室預約管理</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="mobile-app">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Meeting Room</p>
+          <h1>會議室預約管理</h1>
+        </div>
+        <div class="status-pill" id="availableHint">選擇時段</div>
+      </header>
+
+      <nav class="app-tabs" aria-label="主要功能">
+        <button class="app-tab is-active" type="button" data-panel="bookingPanel">前台預約</button>
+        <button class="app-tab" type="button" data-panel="adminPanel">後台管理</button>
+      </nav>
+
+      <section id="bookingPanel" class="panel-view is-active">
+        <section class="booking-card" aria-labelledby="bookingTitle">
+          <div class="section-title">
+            <h2 id="bookingTitle">建立預約</h2>
+            <span>手機快速填寫</span>
+          </div>
+
+          <form id="bookingForm" class="booking-form">
+            <label>
+              會議室
+              <select id="room" required></select>
+            </label>
+
+            <div class="field-row">
+              <label>
+                日期
+                <input id="date" type="date" required />
+              </label>
+              <label>
+                人數
+                <input id="attendees" type="number" min="1" max="99" value="4" inputmode="numeric" required />
+              </label>
+            </div>
+
+            <div class="field-row">
+              <label>
+                開始
+                <select id="startTime" required></select>
+              </label>
+              <label>
+                結束
+                <select id="endTime" required></select>
+              </label>
+            </div>
+
+            <label>
+              預約人
+              <input id="host" type="text" placeholder="例如：王小明" autocomplete="name" required />
+            </label>
+
+            <label>
+              會議主題
+              <input id="subject" type="text" placeholder="例如：部門週會" required />
+            </label>
+
+            <label>
+              備註
+              <textarea id="note" rows="3" placeholder="設備需求、視訊連線、其他補充"></textarea>
+            </label>
+
+            <p id="formMessage" class="form-message" role="status"></p>
+
+            <div class="sticky-submit">
+              <button type="submit" class="primary-action">建立預約</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="day-card" aria-labelledby="scheduleTitle">
+          <div class="schedule-toolbar">
+            <div>
+              <h2 id="scheduleTitle">使用狀態</h2>
+              <p id="scheduleDate"></p>
+            </div>
+            <label class="compact-date">
+              查看
+              <input id="viewDate" type="date" />
+            </label>
+          </div>
+
+          <div class="view-tabs" role="group" aria-label="顯示範圍">
+            <button class="view-tab is-active" type="button" data-view="day">日</button>
+            <button class="view-tab" type="button" data-view="week">週</button>
+            <button class="view-tab" type="button" data-view="month">月</button>
+          </div>
+
+          <div class="summary">
+            <span id="bookingCount">0 筆預約</span>
+            <span id="roomCount">0 間會議室</span>
+          </div>
+
+          <div id="roomGrid" class="room-grid"></div>
+
+          <div class="list-heading">
+            <h2>預約清單</h2>
+            <button id="clearPast" type="button" class="ghost-action">清除過期</button>
+          </div>
+          <div id="bookingList" class="booking-list"></div>
+        </section>
+      </section>
+
+      <section id="adminPanel" class="panel-view">
+        <section id="adminLoginCard" class="admin-card auth-card" aria-labelledby="loginTitle">
+          <div class="section-title">
+            <h2 id="loginTitle">後台登入</h2>
+            <span>管理權限驗證</span>
+          </div>
+
+          <form id="loginForm" class="booking-form">
+            <label>
+              帳號
+              <input id="loginUsername" type="text" autocomplete="username" placeholder="admin" required />
+            </label>
+            <label>
+              密碼
+              <input id="loginPassword" type="password" autocomplete="current-password" placeholder="admin123" required />
+            </label>
+            <p id="loginMessage" class="form-message" role="status"></p>
+            <button class="primary-action" type="submit">登入後台</button>
+          </form>
+        </section>
+
+        <div id="adminContent" class="admin-content">
+          <section class="admin-card admin-session">
+            <div>
+              <h2 id="currentUserName">尚未登入</h2>
+              <p id="currentUserRole"></p>
+            </div>
+            <button id="logoutButton" class="ghost-action" type="button">登出</button>
+          </section>
+
+          <section class="admin-card permission-card">
+            <h2>權限範圍</h2>
+            <div id="permissionList" class="permission-list"></div>
+          </section>
+
+          <section class="admin-card" data-permission="reports" aria-labelledby="reportTitle">
+          <div class="schedule-toolbar">
+            <div>
+              <h2 id="reportTitle">報表總覽</h2>
+              <p id="reportRangeLabel"></p>
+            </div>
+            <label class="compact-date">
+              報表日期
+              <input id="reportDate" type="date" />
+            </label>
+          </div>
+
+          <div class="view-tabs" role="group" aria-label="報表範圍">
+            <button class="report-tab is-active" type="button" data-report-view="day">日</button>
+            <button class="report-tab" type="button" data-report-view="week">週</button>
+            <button class="report-tab" type="button" data-report-view="month">月</button>
+          </div>
+
+          <div class="report-grid">
+            <article>
+              <span>預約數</span>
+              <strong id="reportBookings">0</strong>
+            </article>
+            <article>
+              <span>使用時數</span>
+              <strong id="reportHours">0</strong>
+            </article>
+            <article>
+              <span>平均人數</span>
+              <strong id="reportAverage">0</strong>
+            </article>
+            <article>
+              <span>熱門會議室</span>
+              <strong id="reportTopRoom">-</strong>
+            </article>
+          </div>
+
+          <div class="visual-report">
+            <article class="donut-card">
+              <div class="donut-chart" id="usageDonut" style="--value: 0">
+                <div>
+                  <strong id="usageRate">0%</strong>
+                  <span>使用率</span>
+                </div>
+              </div>
+              <p id="usageHint">尚無使用紀錄</p>
+            </article>
+
+            <article class="mini-chart-card">
+              <div class="chart-heading">
+                <strong>預約分布</strong>
+                <span id="chartUnitLabel">依時段</span>
+              </div>
+              <div class="mini-bars" id="bookingChart"></div>
+            </article>
+          </div>
+
+          <div class="report-bars" id="reportBars"></div>
+        </section>
+
+          <section class="admin-card" data-permission="rooms" aria-labelledby="roomAdminTitle">
+          <div class="section-title">
+            <h2 id="roomAdminTitle">會議室管理</h2>
+            <span>新增、編輯、刪除</span>
+          </div>
+
+          <form id="roomForm" class="booking-form">
+            <input id="roomId" type="hidden" />
+            <label>
+              會議室名稱
+              <input id="roomName" type="text" placeholder="例如：D 會議室" required />
+            </label>
+            <div class="field-row">
+              <label>
+                容納人數
+                <input id="roomCapacity" type="number" min="1" max="999" inputmode="numeric" required />
+              </label>
+              <label>
+                狀態
+                <select id="roomStatus">
+                  <option value="active">啟用</option>
+                  <option value="inactive">停用</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              設備
+              <input id="roomEquipment" type="text" placeholder="例如：投影機、白板、視訊鏡頭" required />
+            </label>
+            <p id="roomFormMessage" class="form-message" role="status"></p>
+            <div class="admin-actions">
+              <button class="primary-action" type="submit">儲存會議室</button>
+              <button id="resetRoomForm" class="ghost-action" type="button">新增模式</button>
+            </div>
+          </form>
+
+          <div id="adminRoomList" class="admin-room-list"></div>
+        </section>
+
+          <section class="admin-card" data-permission="accounts" aria-labelledby="accountAdminTitle">
+            <div class="section-title">
+              <h2 id="accountAdminTitle">帳號管理</h2>
+              <span>角色與權限</span>
+            </div>
+
+            <form id="accountForm" class="booking-form">
+              <input id="accountId" type="hidden" />
+              <label>
+                帳號
+                <input id="accountUsername" type="text" autocomplete="off" placeholder="例如：manager" required />
+              </label>
+              <label>
+                顯示名稱
+                <input id="accountName" type="text" placeholder="例如：行政管理員" required />
+              </label>
+              <div class="field-row">
+                <label>
+                  角色
+                  <select id="accountRole">
+                    <option value="admin">系統管理員</option>
+                    <option value="manager">管理者</option>
+                    <option value="viewer">檢視者</option>
+                  </select>
+                </label>
+                <label>
+                  狀態
+                  <select id="accountStatus">
+                    <option value="active">啟用</option>
+                    <option value="inactive">停用</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                密碼
+                <input id="accountPassword" type="password" autocomplete="new-password" placeholder="新增必填；編輯可留空" />
+              </label>
+              <p id="accountFormMessage" class="form-message" role="status"></p>
+              <div class="admin-actions">
+                <button class="primary-action" type="submit">儲存帳號</button>
+                <button id="resetAccountForm" class="ghost-action" type="button">新增模式</button>
+              </div>
+            </form>
+
+            <div id="accountList" class="account-list"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

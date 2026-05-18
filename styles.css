@@ -1,0 +1,765 @@
+:root {
+  color-scheme: light;
+  --ink: #1f2933;
+  --muted: #6b7785;
+  --line: #d9e1e8;
+  --surface: #f4f7f9;
+  --accent: #0f766e;
+  --accent-dark: #0b5d56;
+  --accent-soft: #dff6f1;
+  --danger: #b42318;
+  --danger-soft: #fff0ee;
+  --shadow: 0 14px 32px rgba(29, 41, 57, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgba(244, 247, 249, 0.94), rgba(244, 247, 249, 1)),
+    url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80");
+  background-attachment: fixed;
+  background-position: center;
+  background-size: cover;
+  font-family: "Segoe UI", "Noto Sans TC", system-ui, -apple-system, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-app {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: max(18px, env(safe-area-inset-top)) 14px calc(96px + env(safe-area-inset-bottom));
+}
+
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px 12px;
+}
+
+.eyebrow,
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+.eyebrow {
+  margin-bottom: 5px;
+  color: var(--accent-dark);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: 1.72rem;
+  line-height: 1.12;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: 1.08rem;
+}
+
+h3 {
+  margin-bottom: 0;
+  font-size: 1rem;
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 11px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(29, 41, 57, 0.08);
+}
+
+.status-pill.is-open {
+  border-color: #b8e8df;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.status-pill.is-busy {
+  border-color: #ffd0ca;
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.app-tabs,
+.view-tabs {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px;
+  background: #eef3f6;
+}
+
+.app-tabs {
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 14px;
+}
+
+.view-tabs {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 12px;
+}
+
+.app-tab,
+.view-tab,
+.report-tab {
+  min-height: 40px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.app-tab.is-active,
+.view-tab.is-active,
+.report-tab.is-active {
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.22);
+}
+
+.panel-view {
+  display: none;
+}
+
+.panel-view.is-active {
+  display: grid;
+  gap: 14px;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.admin-content {
+  display: none;
+  gap: 14px;
+}
+
+.admin-content.is-active {
+  display: grid;
+}
+
+.booking-card,
+.day-card,
+.admin-card {
+  border: 1px solid rgba(217, 225, 232, 0.9);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.section-title,
+.schedule-toolbar,
+.list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-title span,
+.section-title p,
+.schedule-toolbar p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.booking-form {
+  display: grid;
+  gap: 13px;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  color: #344054;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, 0.55fr);
+  gap: 10px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--ink);
+  background: #fff;
+  outline: none;
+}
+
+select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #667085 50%), linear-gradient(135deg, #667085 50%, transparent 50%);
+  background-position: calc(100% - 18px) 21px, calc(100% - 12px) 21px;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+
+textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+}
+
+.form-message {
+  min-height: 20px;
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.form-message.success {
+  color: var(--accent-dark);
+}
+
+.sticky-submit {
+  position: sticky;
+  bottom: env(safe-area-inset-bottom);
+  z-index: 5;
+  margin: 0 -16px -16px;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(217, 225, 232, 0.75);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+}
+
+.primary-action,
+.ghost-action,
+.delete-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.primary-action {
+  width: 100%;
+  min-height: 52px;
+  color: #fff;
+  background: var(--accent);
+}
+
+.ghost-action {
+  border: 1px solid var(--line);
+  padding: 0 12px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.delete-action {
+  padding: 0 12px;
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.compact-date {
+  flex: 0 0 152px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.compact-date input {
+  min-height: 40px;
+  padding: 8px 9px;
+  font-size: 0.9rem;
+}
+
+.summary,
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.summary span,
+.report-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.summary span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.report-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.report-grid strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  font-size: 1.25rem;
+}
+
+.admin-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-session p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.permission-card {
+  display: grid;
+  gap: 12px;
+}
+
+.permission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permission-list span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--muted);
+  background: #fff;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.permission-list span.is-allowed {
+  border-color: #b8e8df;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.visual-report {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.donut-card,
+.mini-chart-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px;
+  background: #fff;
+}
+
+.donut-card {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.donut-chart {
+  display: grid;
+  width: 112px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--value) * 1%), #dce5eb 0);
+}
+
+.donut-chart > div {
+  display: grid;
+  width: 74px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  text-align: center;
+}
+
+.donut-chart strong {
+  font-size: 1.14rem;
+}
+
+.donut-chart span,
+.donut-card p,
+.chart-heading span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.donut-card p {
+  margin-bottom: 0;
+}
+
+.chart-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mini-bars {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(24px, 1fr);
+  gap: 7px;
+  min-height: 136px;
+  align-items: end;
+}
+
+.mini-bar {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: 5px;
+  min-width: 0;
+  height: 136px;
+  align-items: end;
+  text-align: center;
+}
+
+.mini-bar-fill {
+  display: block;
+  width: 100%;
+  max-width: 34px;
+  min-height: 6px;
+  margin: 0 auto;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+}
+
+.mini-bar strong {
+  font-size: 0.82rem;
+}
+
+.mini-bar small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-grid,
+.slots,
+.booking-list,
+.report-bars,
+.admin-room-list,
+.account-list {
+  display: grid;
+  gap: 10px;
+}
+
+.room-grid {
+  margin-bottom: 18px;
+}
+
+.room-card,
+.admin-room-item,
+.account-item,
+.report-bar {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px;
+  background: var(--surface);
+}
+
+.room-meta,
+.admin-room-item,
+.account-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.room-meta p,
+.admin-room-item p,
+.account-item p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.room-capacity,
+.room-state {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--muted);
+  background: #e9eef2;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.room-capacity,
+.room-state.is-active {
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.slot {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  border-left: 4px solid var(--accent);
+  border-radius: 7px;
+  padding: 9px;
+  background: #fff;
+  font-size: 0.88rem;
+}
+
+.slot time {
+  color: var(--accent-dark);
+  font-weight: 900;
+}
+
+.slot time small {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.slot strong,
+.booking-item h3 {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.slot span,
+.booking-item p {
+  color: var(--muted);
+}
+
+.empty-state {
+  display: grid;
+  min-height: 62px;
+  place-items: center;
+  border: 1px dashed #c4ced8;
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.booking-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+
+.booking-item h3 {
+  margin: 0 0 5px;
+}
+
+.booking-item p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.booking-note {
+  margin-top: 7px !important;
+  color: #475467 !important;
+}
+
+.report-bar {
+  display: grid;
+  gap: 9px;
+}
+
+.report-bar div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.report-bar span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.bar-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dce5eb;
+}
+
+.bar-track span {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.admin-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.room-actions {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 430px) {
+  .app-header,
+  .schedule-toolbar,
+  .admin-session,
+  .admin-room-item,
+  .account-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .compact-date {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .mobile-app {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .field-row,
+  .summary,
+  .report-grid,
+  .donut-card,
+  .booking-item,
+  .admin-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .donut-chart {
+    margin: 0 auto;
+  }
+}
+
+@media (min-width: 760px) {
+  .mobile-app {
+    width: min(100%, 1180px);
+    padding: 30px 24px 48px;
+  }
+
+  .app-header {
+    align-items: flex-end;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  #bookingPanel,
+  .admin-content {
+    grid-template-columns: 380px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  #adminPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .room-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .visual-report {
+    grid-template-columns: 0.8fr 1.2fr;
+  }
+
+  .sticky-submit {
+    position: static;
+    margin: 2px 0 0;
+    padding: 0;
+    border-top: 0;
+    background: transparent;
+    backdrop-filter: none;
+  }
+}

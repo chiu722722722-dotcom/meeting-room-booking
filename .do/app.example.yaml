@@ -1,0 +1,16 @@
+name: meeting-room-booking-web
+region: sgp
+static_sites:
+  - name: web
+    environment_slug: html
+    source_dir: /web
+    output_dir: /
+    index_document: index.html
+    catchall_document: index.html
+    github:
+      repo: chiu722722722-dotcom/meeting-room-booking
+      branch: main
+      deploy_on_push: true
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
