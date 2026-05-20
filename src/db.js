@@ -11,10 +11,17 @@ const __dirname = path.dirname(__filename);
 
 export const pool = config.databaseUrl
   ? new Pool({
-      connectionString: config.databaseUrl,
+      connectionString: normalizeDatabaseUrl(config.databaseUrl),
       ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
     })
   : null;
+
+function normalizeDatabaseUrl(databaseUrl) {
+  if (process.env.NODE_ENV !== "production") return databaseUrl;
+  const url = new URL(databaseUrl);
+  url.searchParams.delete("sslmode");
+  return url.toString();
+}
 
 export async function query(text, params = []) {
   if (!pool) {
