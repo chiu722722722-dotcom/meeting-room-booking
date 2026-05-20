@@ -5,118 +5,110 @@ const defaultRooms = [
 ];
 
 const defaultUsers = [
-  {
-    id: "admin",
-    username: "admin",
-    name: "系統管理員",
-    password: "admin123",
-    role: "admin",
-    status: "active",
-  },
+  { id: "admin", username: "admin", name: "系統管理員", password: "admin123", role: "admin", status: "active" },
 ];
 
 const roleConfig = {
-  admin: {
-    label: "系統管理員",
-    permissions: ["reports", "rooms", "accounts"],
-  },
-  manager: {
-    label: "管理者",
-    permissions: ["reports", "rooms"],
-  },
-  viewer: {
-    label: "檢視者",
-    permissions: ["reports"],
-  },
+  admin: { label: "系統管理員", permissions: ["reports", "rooms", "accounts"] },
+  manager: { label: "管理者", permissions: ["reports", "rooms"] },
+  viewer: { label: "檢視者", permissions: ["reports"] },
+  user: { label: "一般使用者", permissions: [] },
 };
 
-const bookingStorageKey = "meeting-room-bookings";
-const roomStorageKey = "meeting-room-rooms";
-const userStorageKey = "meeting-room-users";
-const sessionStorageKey = "meeting-room-current-user";
+const storageKeys = {
+  rooms: "meeting-room-rooms",
+  bookings: "meeting-room-bookings",
+  users: "meeting-room-users",
+  currentUser: "meeting-room-current-user",
+};
+
 const timeOptions = buildTimeOptions("08:00", "19:00", 30);
-
-const roomSelect = document.querySelector("#room");
-const dateInput = document.querySelector("#date");
-const viewDateInput = document.querySelector("#viewDate");
-const startTimeSelect = document.querySelector("#startTime");
-const endTimeSelect = document.querySelector("#endTime");
-const attendeesInput = document.querySelector("#attendees");
-const hostInput = document.querySelector("#host");
-const subjectInput = document.querySelector("#subject");
-const noteInput = document.querySelector("#note");
-const form = document.querySelector("#bookingForm");
-const formMessage = document.querySelector("#formMessage");
-const availableHint = document.querySelector("#availableHint");
-const scheduleTitle = document.querySelector("#scheduleTitle");
-const scheduleDate = document.querySelector("#scheduleDate");
-const roomGrid = document.querySelector("#roomGrid");
-const bookingList = document.querySelector("#bookingList");
-const bookingCount = document.querySelector("#bookingCount");
-const roomCount = document.querySelector("#roomCount");
-const clearPastButton = document.querySelector("#clearPast");
-const viewTabs = document.querySelectorAll(".view-tab");
-const appTabs = document.querySelectorAll(".app-tab");
-const panelViews = document.querySelectorAll(".panel-view");
-const reportTabs = document.querySelectorAll(".report-tab");
-const reportDateInput = document.querySelector("#reportDate");
-const reportRangeLabel = document.querySelector("#reportRangeLabel");
-const reportBookings = document.querySelector("#reportBookings");
-const reportHours = document.querySelector("#reportHours");
-const reportAverage = document.querySelector("#reportAverage");
-const reportTopRoom = document.querySelector("#reportTopRoom");
-const reportBars = document.querySelector("#reportBars");
-const usageDonut = document.querySelector("#usageDonut");
-const usageRate = document.querySelector("#usageRate");
-const usageHint = document.querySelector("#usageHint");
-const bookingChart = document.querySelector("#bookingChart");
-const chartUnitLabel = document.querySelector("#chartUnitLabel");
-const adminLoginCard = document.querySelector("#adminLoginCard");
-const adminContent = document.querySelector("#adminContent");
-const loginForm = document.querySelector("#loginForm");
-const loginUsernameInput = document.querySelector("#loginUsername");
-const loginPasswordInput = document.querySelector("#loginPassword");
-const loginMessage = document.querySelector("#loginMessage");
-const logoutButton = document.querySelector("#logoutButton");
-const currentUserName = document.querySelector("#currentUserName");
-const currentUserRole = document.querySelector("#currentUserRole");
-const permissionList = document.querySelector("#permissionList");
-const roomForm = document.querySelector("#roomForm");
-const roomIdInput = document.querySelector("#roomId");
-const roomNameInput = document.querySelector("#roomName");
-const roomCapacityInput = document.querySelector("#roomCapacity");
-const roomStatusInput = document.querySelector("#roomStatus");
-const roomEquipmentInput = document.querySelector("#roomEquipment");
-const roomFormMessage = document.querySelector("#roomFormMessage");
-const resetRoomFormButton = document.querySelector("#resetRoomForm");
-const adminRoomList = document.querySelector("#adminRoomList");
-const accountForm = document.querySelector("#accountForm");
-const accountIdInput = document.querySelector("#accountId");
-const accountUsernameInput = document.querySelector("#accountUsername");
-const accountNameInput = document.querySelector("#accountName");
-const accountRoleInput = document.querySelector("#accountRole");
-const accountStatusInput = document.querySelector("#accountStatus");
-const accountPasswordInput = document.querySelector("#accountPassword");
-const accountFormMessage = document.querySelector("#accountFormMessage");
-const resetAccountFormButton = document.querySelector("#resetAccountForm");
-const accountList = document.querySelector("#accountList");
-
-let rooms = loadRooms();
-let bookings = loadBookings();
-let users = loadUsers();
-let currentUser = loadCurrentUser();
+let rooms = loadLocal(storageKeys.rooms, defaultRooms);
+let bookings = loadLocal(storageKeys.bookings, []);
+let users = loadLocal(storageKeys.users, defaultUsers);
+let currentUser = loadLocalCurrentUser();
 let currentView = "day";
 let reportView = "day";
+let apiAvailable = false;
 
-function init() {
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => document.querySelectorAll(selector);
+
+const roomSelect = $("#room");
+const dateInput = $("#date");
+const viewDateInput = $("#viewDate");
+const startTimeSelect = $("#startTime");
+const endTimeSelect = $("#endTime");
+const attendeesInput = $("#attendees");
+const hostInput = $("#host");
+const subjectInput = $("#subject");
+const noteInput = $("#note");
+const form = $("#bookingForm");
+const formMessage = $("#formMessage");
+const availableHint = $("#availableHint");
+const scheduleTitle = $("#scheduleTitle");
+const scheduleDate = $("#scheduleDate");
+const roomGrid = $("#roomGrid");
+const bookingList = $("#bookingList");
+const bookingCount = $("#bookingCount");
+const roomCount = $("#roomCount");
+const clearPastButton = $("#clearPast");
+const reportDateInput = $("#reportDate");
+const reportRangeLabel = $("#reportRangeLabel");
+const reportBookings = $("#reportBookings");
+const reportHours = $("#reportHours");
+const reportAverage = $("#reportAverage");
+const reportTopRoom = $("#reportTopRoom");
+const reportBars = $("#reportBars");
+const usageDonut = $("#usageDonut");
+const usageRate = $("#usageRate");
+const usageHint = $("#usageHint");
+const bookingChart = $("#bookingChart");
+const chartUnitLabel = $("#chartUnitLabel");
+const adminLoginCard = $("#adminLoginCard");
+const adminContent = $("#adminContent");
+const loginForm = $("#loginForm");
+const loginUsernameInput = $("#loginUsername");
+const loginPasswordInput = $("#loginPassword");
+const loginMessage = $("#loginMessage");
+const logoutButton = $("#logoutButton");
+const currentUserName = $("#currentUserName");
+const currentUserRole = $("#currentUserRole");
+const permissionList = $("#permissionList");
+const roomForm = $("#roomForm");
+const roomIdInput = $("#roomId");
+const roomNameInput = $("#roomName");
+const roomCapacityInput = $("#roomCapacity");
+const roomStatusInput = $("#roomStatus");
+const roomEquipmentInput = $("#roomEquipment");
+const roomFormMessage = $("#roomFormMessage");
+const resetRoomFormButton = $("#resetRoomForm");
+const adminRoomList = $("#adminRoomList");
+const accountForm = $("#accountForm");
+const accountIdInput = $("#accountId");
+const accountUsernameInput = $("#accountUsername");
+const accountNameInput = $("#accountName");
+const accountRoleInput = $("#accountRole");
+const accountStatusInput = $("#accountStatus");
+const accountPasswordInput = $("#accountPassword");
+const accountFormMessage = $("#accountFormMessage");
+const resetAccountFormButton = $("#resetAccountForm");
+const accountList = $("#accountList");
+
+init();
+
+async function init() {
   const today = toDateValue(new Date());
   dateInput.value = today;
   viewDateInput.value = today;
   reportDateInput.value = today;
-
-  renderRoomOptions();
   renderTimeOptions();
+  bindEvents();
+  await syncFromApi();
+  render();
+}
 
+function bindEvents() {
   form.addEventListener("submit", handleSubmit);
   dateInput.addEventListener("change", syncFormDate);
   viewDateInput.addEventListener("change", syncViewDate);
@@ -126,9 +118,9 @@ function init() {
   endTimeSelect.addEventListener("change", updateAvailabilityHint);
   clearPastButton.addEventListener("click", clearPastBookings);
   bookingList.addEventListener("click", deleteBooking);
-  viewTabs.forEach((button) => button.addEventListener("click", changeView));
-  reportTabs.forEach((button) => button.addEventListener("click", changeReportView));
-  appTabs.forEach((button) => button.addEventListener("click", switchPanel));
+  $$(".view-tab").forEach((button) => button.addEventListener("click", changeView));
+  $$(".report-tab").forEach((button) => button.addEventListener("click", changeReportView));
+  $$(".app-tab").forEach((button) => button.addEventListener("click", switchPanel));
   loginForm.addEventListener("submit", loginAdmin);
   logoutButton.addEventListener("click", logoutAdmin);
   roomForm.addEventListener("submit", saveRoom);
@@ -137,49 +129,49 @@ function init() {
   accountForm.addEventListener("submit", saveAccount);
   resetAccountFormButton.addEventListener("click", resetAccountForm);
   accountList.addEventListener("click", handleAccountAction);
-
-  render();
 }
 
-function renderRoomOptions() {
-  const activeRooms = rooms.filter((room) => room.status === "active");
-  const previous = roomSelect.value;
-  roomSelect.innerHTML = "";
-
-  activeRooms.forEach((room) => {
-    const option = document.createElement("option");
-    option.value = room.id;
-    option.textContent = `${room.name}（${room.capacity}人）`;
-    roomSelect.append(option);
-  });
-
-  if (activeRooms.some((room) => room.id === previous)) {
-    roomSelect.value = previous;
+async function syncFromApi() {
+  try {
+    const data = await apiRequest("/api/bootstrap");
+    apiAvailable = true;
+    rooms = data.rooms || rooms;
+    bookings = data.bookings || [];
+    currentUser = data.user || null;
+    if (hasPermission("accounts")) {
+      const userData = await apiRequest("/api/users");
+      users = userData.users || users;
+    }
+  } catch {
+    apiAvailable = false;
   }
 }
 
-function renderTimeOptions() {
-  timeOptions.forEach((time, index) => {
-    const startOption = document.createElement("option");
-    startOption.value = time;
-    startOption.textContent = time;
-    startTimeSelect.append(startOption);
-
-    if (index > 0) {
-      const endOption = document.createElement("option");
-      endOption.value = time;
-      endOption.textContent = time;
-      endTimeSelect.append(endOption);
-    }
+async function apiRequest(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
   });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "API request failed.");
+  return data;
+}
 
+function renderTimeOptions() {
+  startTimeSelect.innerHTML = "";
+  endTimeSelect.innerHTML = "";
+  timeOptions.forEach((time, index) => {
+    startTimeSelect.append(new Option(time, time));
+    if (index > 0) endTimeSelect.append(new Option(time, time));
+  });
   startTimeSelect.value = "09:00";
   endTimeSelect.value = "10:00";
 }
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
-  clearMessage();
+  showMessage("");
 
   const booking = {
     id: crypto.randomUUID(),
@@ -191,65 +183,57 @@ function handleSubmit(event) {
     host: hostInput.value.trim(),
     subject: subjectInput.value.trim(),
     note: noteInput.value.trim(),
-    createdAt: new Date().toISOString(),
   };
 
-  const validation = validateBooking(booking);
-  if (!validation.ok) {
-    showMessage(validation.message);
-    return;
-  }
+  const validation = validateBookingLocal(booking);
+  if (!validation.ok) return showMessage(validation.message);
 
-  bookings.push(booking);
-  saveBookings();
-  viewDateInput.value = booking.date;
-  reportDateInput.value = booking.date;
-  form.reset();
-  dateInput.value = booking.date;
-  attendeesInput.value = "4";
-  roomSelect.value = booking.roomId;
-  startTimeSelect.value = booking.end;
-  endTimeSelect.value = nextTime(booking.end) || booking.end;
-  showMessage("預約已建立。", true);
-  render();
+  try {
+    if (apiAvailable) {
+      const data = await apiRequest("/api/bookings", { method: "POST", body: JSON.stringify(booking) });
+      bookings.push(data.booking);
+    } else {
+      bookings.push(booking);
+      saveLocal(storageKeys.bookings, bookings);
+    }
+    viewDateInput.value = booking.date;
+    reportDateInput.value = booking.date;
+    form.reset();
+    dateInput.value = booking.date;
+    attendeesInput.value = "4";
+    roomSelect.value = booking.roomId;
+    startTimeSelect.value = booking.end;
+    endTimeSelect.value = nextTime(booking.end) || booking.end;
+    showMessage(apiAvailable ? "預約已建立並儲存到資料庫。" : "預約已建立。", true);
+    render();
+  } catch (error) {
+    showMessage(error.message);
+  }
 }
 
-function validateBooking(booking) {
+function validateBookingLocal(booking) {
   const room = rooms.find((item) => item.id === booking.roomId && item.status === "active");
-
   if (!room) return { ok: false, message: "請選擇可用的會議室。" };
   if (!booking.date) return { ok: false, message: "請選擇日期。" };
-  if (toMinutes(booking.start) >= toMinutes(booking.end)) {
-    return { ok: false, message: "結束時間必須晚於開始時間。" };
-  }
-  if (booking.attendees > room.capacity) {
-    return { ok: false, message: `${room.name} 最多容納 ${room.capacity} 人。` };
-  }
-  if (!booking.host || !booking.subject) {
-    return { ok: false, message: "請填寫預約人與會議主題。" };
-  }
-  if (hasConflict(booking)) {
-    return { ok: false, message: "此會議室在該時段已有預約，請改選其他時間或會議室。" };
-  }
-
+  if (toMinutes(booking.start) >= toMinutes(booking.end)) return { ok: false, message: "結束時間必須晚於開始時間。" };
+  if (booking.attendees > room.capacity) return { ok: false, message: `${room.name} 最多容納 ${room.capacity} 人。` };
+  if (!booking.host || !booking.subject) return { ok: false, message: "請填寫預約人與會議主題。" };
+  if (hasConflict(booking)) return { ok: false, message: "此會議室在該時段已有預約，請改選其他時間或會議室。" };
   return { ok: true };
 }
 
 function hasConflict(target) {
   const targetStart = toMinutes(target.start);
   const targetEnd = toMinutes(target.end);
-
   return bookings.some((booking) => {
     if (booking.id === target.id) return false;
     if (booking.roomId !== target.roomId || booking.date !== target.date) return false;
-
-    const start = toMinutes(booking.start);
-    const end = toMinutes(booking.end);
-    return targetStart < end && targetEnd > start;
+    return targetStart < toMinutes(booking.end) && targetEnd > toMinutes(booking.start);
   });
 }
 
 function render() {
+  renderRoomOptions();
   renderSchedule();
   renderAdminAuth();
   renderReports();
@@ -257,115 +241,52 @@ function render() {
   renderAccounts();
 }
 
-function renderAdminAuth() {
-  const loggedIn = Boolean(currentUser);
-  adminLoginCard.classList.toggle("is-hidden", loggedIn);
-  adminContent.classList.toggle("is-active", loggedIn);
-
-  if (!loggedIn) {
-    return;
-  }
-
-  const config = roleConfig[currentUser.role] || roleConfig.viewer;
-  currentUserName.textContent = currentUser.name;
-  currentUserRole.textContent = `${config.label} · ${currentUser.username}`;
-
-  permissionList.innerHTML = "";
-  [
-    { key: "reports", label: "查看報表" },
-    { key: "rooms", label: "管理會議室" },
-    { key: "accounts", label: "管理帳號" },
-  ].forEach((permission) => {
-    const item = document.createElement("span");
-    item.className = hasPermission(permission.key) ? "is-allowed" : "";
-    item.textContent = permission.label;
-    permissionList.append(item);
-  });
-
-  document.querySelectorAll("[data-permission]").forEach((section) => {
-    section.classList.toggle("is-hidden", !hasPermission(section.dataset.permission));
-  });
-}
-
-function loginAdmin(event) {
-  event.preventDefault();
-  const username = loginUsernameInput.value.trim();
-  const password = loginPasswordInput.value;
-  const user = users.find((item) => item.username === username && item.password === password);
-
-  if (!user || user.status !== "active") {
-    showLoginMessage("帳號或密碼錯誤，或帳號已停用。");
-    return;
-  }
-
-  currentUser = { id: user.id, username: user.username, name: user.name, role: user.role };
-  sessionStorage.setItem(sessionStorageKey, currentUser.id);
-  loginForm.reset();
-  showLoginMessage("");
-  render();
-}
-
-function logoutAdmin() {
-  currentUser = null;
-  sessionStorage.removeItem(sessionStorageKey);
-  resetRoomForm();
-  resetAccountForm();
-  render();
-}
-
-function hasPermission(permission) {
-  if (!currentUser) return false;
-  return (roleConfig[currentUser.role]?.permissions || []).includes(permission);
+function renderRoomOptions() {
+  const previous = roomSelect.value;
+  roomSelect.innerHTML = "";
+  rooms
+    .filter((room) => room.status === "active")
+    .forEach((room) => roomSelect.append(new Option(`${room.name}（${room.capacity}人）`, room.id)));
+  if ([...roomSelect.options].some((option) => option.value === previous)) roomSelect.value = previous;
 }
 
 function renderSchedule() {
-  const selectedDate = viewDateInput.value || toDateValue(new Date());
-  const range = getViewRange(selectedDate, currentView);
+  const range = getViewRange(viewDateInput.value || toDateValue(new Date()), currentView);
   const rangeBookings = getBookingsInRange(range.start, range.end);
-  const visibleRooms = rooms.filter((room) => room.status === "active");
-
+  const activeRooms = rooms.filter((room) => room.status === "active");
   scheduleTitle.textContent = `${getViewLabel(currentView)}使用狀態`;
   scheduleDate.textContent = getRangeLabel(range, currentView);
   bookingCount.textContent = `${rangeBookings.length} 筆預約`;
-  roomCount.textContent = `${visibleRooms.length} 間會議室`;
+  roomCount.textContent = `${activeRooms.length} 間會議室`;
 
   roomGrid.innerHTML = "";
-  visibleRooms.forEach((room) => {
-    const roomBookings = rangeBookings.filter((booking) => booking.roomId === room.id);
-    roomGrid.append(createRoomCard(room, roomBookings, currentView));
+  activeRooms.forEach((room) => {
+    roomGrid.append(createRoomCard(room, rangeBookings.filter((booking) => booking.roomId === room.id), currentView));
   });
 
   bookingList.innerHTML = "";
-  if (rangeBookings.length === 0) {
-    bookingList.append(createEmptyState("這個範圍還沒有預約。"));
-  } else {
-    rangeBookings.forEach((booking) => bookingList.append(createBookingItem(booking)));
-  }
+  if (!rangeBookings.length) bookingList.append(createEmptyState("這個範圍還沒有預約。"));
+  else rangeBookings.forEach((booking) => bookingList.append(createBookingItem(booking)));
 
-  viewTabs.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.view === currentView);
-  });
+  $$(".view-tab").forEach((button) => button.classList.toggle("is-active", button.dataset.view === currentView));
   updateAvailabilityHint();
 }
 
 function createRoomCard(room, roomBookings, view) {
   const card = document.createElement("article");
   card.className = "room-card";
-
-  const meta = document.createElement("div");
-  meta.className = "room-meta";
-  meta.innerHTML = `
-    <div>
-      <h2>${escapeHtml(room.name)}</h2>
-      <p>${escapeHtml(room.equipment)}</p>
+  card.innerHTML = `
+    <div class="room-meta">
+      <div>
+        <h2>${escapeHtml(room.name)}</h2>
+        <p>${escapeHtml(room.equipment)}</p>
+      </div>
+      <span class="room-capacity">${room.capacity} 人</span>
     </div>
-    <span class="room-capacity">${room.capacity} 人</span>
   `;
-
   const slots = document.createElement("div");
   slots.className = "slots";
-
-  if (roomBookings.length === 0) {
+  if (!roomBookings.length) {
     slots.append(createEmptyState("此範圍可預約"));
   } else {
     roomBookings.forEach((booking) => {
@@ -382,8 +303,7 @@ function createRoomCard(room, roomBookings, view) {
       slots.append(slot);
     });
   }
-
-  card.append(meta, slots);
+  card.append(slots);
   return card;
 }
 
@@ -391,56 +311,125 @@ function createBookingItem(booking) {
   const room = rooms.find((item) => item.id === booking.roomId);
   const item = document.createElement("article");
   item.className = "booking-item";
-
-  const details = document.createElement("div");
-  details.innerHTML = `
-    <h3>${escapeHtml(booking.subject)}</h3>
-    <p>${formatShortDate(booking.date)} · ${escapeHtml(room?.name || "未知會議室")} · ${booking.start}-${booking.end} · ${escapeHtml(booking.host)} · ${booking.attendees} 人</p>
+  item.innerHTML = `
+    <div>
+      <h3>${escapeHtml(booking.subject)}</h3>
+      <p>${formatShortDate(booking.date)} · ${escapeHtml(room?.name || "未知會議室")} · ${booking.start}-${booking.end} · ${escapeHtml(booking.host)} · ${booking.attendees} 人</p>
+      ${booking.note ? `<p class="booking-note">${escapeHtml(booking.note)}</p>` : ""}
+    </div>
+    <button type="button" class="delete-action" data-id="${booking.id}">取消</button>
   `;
-
-  if (booking.note) {
-    const note = document.createElement("p");
-    note.className = "booking-note";
-    note.textContent = booking.note;
-    details.append(note);
-  }
-
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "delete-action";
-  button.dataset.id = booking.id;
-  button.textContent = "取消";
-
-  item.append(details, button);
   return item;
+}
+
+function renderAdminAuth() {
+  const loggedIn = Boolean(currentUser);
+  adminLoginCard.classList.toggle("is-hidden", loggedIn);
+  adminContent.classList.toggle("is-active", loggedIn);
+  if (!loggedIn) return;
+
+  const config = roleConfig[currentUser.role] || roleConfig.viewer;
+  currentUserName.textContent = currentUser.name;
+  currentUserRole.textContent = `${config.label} · ${currentUser.username}`;
+  permissionList.innerHTML = "";
+  [
+    { key: "reports", label: "查看報表" },
+    { key: "rooms", label: "管理會議室" },
+    { key: "accounts", label: "管理帳號" },
+  ].forEach((permission) => {
+    const item = document.createElement("span");
+    item.className = hasPermission(permission.key) ? "is-allowed" : "";
+    item.textContent = permission.label;
+    permissionList.append(item);
+  });
+  $$("[data-permission]").forEach((section) => section.classList.toggle("is-hidden", !hasPermission(section.dataset.permission)));
+}
+
+async function loginAdmin(event) {
+  event.preventDefault();
+  showLoginMessage("");
+  try {
+    if (apiAvailable) {
+      const data = await apiRequest("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username: loginUsernameInput.value.trim(), password: loginPasswordInput.value }),
+      });
+      currentUser = data.user;
+      if (hasPermission("accounts")) users = (await apiRequest("/api/users")).users || users;
+    } else {
+      const user = users.find((item) => item.username === loginUsernameInput.value.trim() && item.password === loginPasswordInput.value);
+      if (!user || user.status !== "active") throw new Error("帳號或密碼錯誤，或帳號已停用。");
+      currentUser = { id: user.id, username: user.username, name: user.name, role: user.role };
+      sessionStorage.setItem(storageKeys.currentUser, currentUser.id);
+    }
+    loginForm.reset();
+    render();
+  } catch (error) {
+    showLoginMessage(error.message);
+  }
+}
+
+async function logoutAdmin() {
+  if (apiAvailable) await apiRequest("/api/auth/logout", { method: "POST" }).catch(() => null);
+  currentUser = null;
+  sessionStorage.removeItem(storageKeys.currentUser);
+  resetRoomForm();
+  resetAccountForm();
+  render();
 }
 
 function renderReports() {
   const range = getViewRange(reportDateInput.value || toDateValue(new Date()), reportView);
-  const reportBookingsInRange = getBookingsInRange(range.start, range.end);
-  const totalMinutes = reportBookingsInRange.reduce((sum, booking) => sum + (toMinutes(booking.end) - toMinutes(booking.start)), 0);
-  const totalAttendees = reportBookingsInRange.reduce((sum, booking) => sum + Number(booking.attendees || 0), 0);
+  const rangeBookings = getBookingsInRange(range.start, range.end);
+  const totalMinutes = rangeBookings.reduce((sum, booking) => sum + (toMinutes(booking.end) - toMinutes(booking.start)), 0);
+  const totalAttendees = rangeBookings.reduce((sum, booking) => sum + Number(booking.attendees || 0), 0);
   const roomStats = rooms.map((room) => {
-    const roomBookings = reportBookingsInRange.filter((booking) => booking.roomId === room.id);
+    const roomBookings = rangeBookings.filter((booking) => booking.roomId === room.id);
     const minutes = roomBookings.reduce((sum, booking) => sum + (toMinutes(booking.end) - toMinutes(booking.start)), 0);
     return { room, count: roomBookings.length, hours: minutes / 60 };
   });
   const topRoom = [...roomStats].sort((a, b) => b.count - a.count || b.hours - a.hours)[0];
-  const maxCount = Math.max(1, ...roomStats.map((item) => item.count));
-  const availableHours = getRangeDayCount(range.start, range.end) * rooms.filter((room) => room.status === "active").length * 11;
+  const activeRoomCount = Math.max(1, rooms.filter((room) => room.status === "active").length);
+  const availableHours = getRangeDayCount(range.start, range.end) * activeRoomCount * 11;
   const usagePercent = availableHours ? Math.min(100, Math.round((totalMinutes / 60 / availableHours) * 100)) : 0;
 
   reportRangeLabel.textContent = getRangeLabel(range, reportView);
-  reportBookings.textContent = String(reportBookingsInRange.length);
+  reportBookings.textContent = String(rangeBookings.length);
   reportHours.textContent = formatNumber(totalMinutes / 60);
-  reportAverage.textContent = reportBookingsInRange.length ? formatNumber(totalAttendees / reportBookingsInRange.length) : "0";
+  reportAverage.textContent = rangeBookings.length ? formatNumber(totalAttendees / rangeBookings.length) : "0";
   reportTopRoom.textContent = topRoom && topRoom.count > 0 ? topRoom.room.name : "-";
   usageDonut.style.setProperty("--value", usagePercent);
   usageRate.textContent = `${usagePercent}%`;
   usageHint.textContent = `${formatNumber(totalMinutes / 60)} / ${formatNumber(availableHours)} 小時`;
   chartUnitLabel.textContent = reportView === "day" ? "依時段" : "依日期";
+  renderBookingChart(rangeBookings, range);
+  renderRoomBars(roomStats);
+  $$(".report-tab").forEach((button) => button.classList.toggle("is-active", button.dataset.reportView === reportView));
+}
 
-  renderBookingChart(reportBookingsInRange, range);
+function renderBookingChart(rangeBookings, range) {
+  const buckets = getChartBuckets(range, reportView);
+  rangeBookings.forEach((booking) => {
+    const key = reportView === "day" ? getTimeBucket(booking.start) : booking.date;
+    const bucket = buckets.find((item) => item.key === key);
+    if (bucket) bucket.count += 1;
+  });
+  const maxValue = Math.max(1, ...buckets.map((item) => item.count));
+  bookingChart.innerHTML = "";
+  buckets.forEach((bucket) => {
+    const item = document.createElement("div");
+    item.className = "mini-bar";
+    item.innerHTML = `
+      <span class="mini-bar-fill" style="height: ${Math.max(6, (bucket.count / maxValue) * 100)}%"></span>
+      <strong>${bucket.count}</strong>
+      <small>${escapeHtml(bucket.label)}</small>
+    `;
+    bookingChart.append(item);
+  });
+}
+
+function renderRoomBars(roomStats) {
+  const maxCount = Math.max(1, ...roomStats.map((item) => item.count));
   reportBars.innerHTML = "";
   roomStats.forEach((item) => {
     const row = document.createElement("article");
@@ -454,38 +443,11 @@ function renderReports() {
     `;
     reportBars.append(row);
   });
-
-  reportTabs.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.reportView === reportView);
-  });
-}
-
-function renderBookingChart(reportBookingsInRange, range) {
-  const buckets = getChartBuckets(range, reportView);
-  reportBookingsInRange.forEach((booking) => {
-    const key = reportView === "day" ? getTimeBucket(booking.start) : booking.date;
-    const bucket = buckets.find((item) => item.key === key);
-    if (bucket) bucket.count += 1;
-  });
-
-  const maxValue = Math.max(1, ...buckets.map((item) => item.count));
-  bookingChart.innerHTML = "";
-
-  buckets.forEach((bucket) => {
-    const item = document.createElement("div");
-    item.className = "mini-bar";
-    item.innerHTML = `
-      <span class="mini-bar-fill" style="height: ${Math.max(6, (bucket.count / maxValue) * 100)}%"></span>
-      <strong>${bucket.count}</strong>
-      <small>${escapeHtml(bucket.label)}</small>
-    `;
-    bookingChart.append(item);
-  });
 }
 
 function renderAdminRooms() {
+  if (!hasPermission("rooms")) return;
   adminRoomList.innerHTML = "";
-
   rooms.forEach((room) => {
     const count = bookings.filter((booking) => booking.roomId === room.id).length;
     const item = document.createElement("article");
@@ -505,56 +467,44 @@ function renderAdminRooms() {
   });
 }
 
-function saveRoom(event) {
+async function saveRoom(event) {
   event.preventDefault();
-  if (!hasPermission("rooms")) {
-    showRoomMessage("你的角色沒有管理會議室的權限。");
-    return;
-  }
-
-  const id = roomIdInput.value || crypto.randomUUID();
+  if (!hasPermission("rooms")) return showRoomMessage("你的角色沒有管理會議室的權限。");
   const room = {
-    id,
+    id: roomIdInput.value || crypto.randomUUID(),
     name: roomNameInput.value.trim(),
     capacity: Number(roomCapacityInput.value),
     equipment: roomEquipmentInput.value.trim(),
     status: roomStatusInput.value,
   };
-
-  if (!room.name || !room.capacity || !room.equipment) {
-    showRoomMessage("請完整填寫會議室資料。");
-    return;
+  if (!room.name || !room.capacity || !room.equipment) return showRoomMessage("請完整填寫會議室資料。");
+  try {
+    if (apiAvailable) {
+      const path = roomIdInput.value ? `/api/rooms/${room.id}` : "/api/rooms";
+      const method = roomIdInput.value ? "PATCH" : "POST";
+      const data = await apiRequest(path, { method, body: JSON.stringify(room) });
+      const index = rooms.findIndex((item) => item.id === data.room.id);
+      if (index >= 0) rooms[index] = data.room;
+      else rooms.push(data.room);
+    } else {
+      const index = rooms.findIndex((item) => item.id === room.id);
+      if (index >= 0) rooms[index] = room;
+      else rooms.push(room);
+      saveLocal(storageKeys.rooms, rooms);
+    }
+    resetRoomForm();
+    showRoomMessage("會議室已儲存。", true);
+    render();
+  } catch (error) {
+    showRoomMessage(error.message);
   }
-
-  const duplicated = rooms.some((item) => item.id !== id && item.name === room.name);
-  if (duplicated) {
-    showRoomMessage("會議室名稱已存在。");
-    return;
-  }
-
-  const index = rooms.findIndex((item) => item.id === id);
-  if (index >= 0) {
-    rooms[index] = room;
-  } else {
-    rooms.push(room);
-  }
-
-  saveRooms();
-  resetRoomForm();
-  showRoomMessage("會議室已儲存。", true);
-  renderRoomOptions();
-  render();
 }
 
 function handleAdminRoomAction(event) {
-  if (!hasPermission("rooms")) return;
-
   const button = event.target.closest("button[data-action]");
-  if (!button) return;
-
+  if (!button || !hasPermission("rooms")) return;
   const room = rooms.find((item) => item.id === button.dataset.id);
   if (!room) return;
-
   if (button.dataset.action === "edit") {
     roomIdInput.value = room.id;
     roomNameInput.value = room.name;
@@ -565,24 +515,33 @@ function handleAdminRoomAction(event) {
     roomNameInput.focus();
     return;
   }
+  deleteRoom(room);
+}
 
-  const hasBookings = bookings.some((booking) => booking.roomId === room.id);
-  if (hasBookings) {
-    room.status = "inactive";
-    showRoomMessage("此會議室已有預約紀錄，已改為停用以保留報表資料。", true);
-  } else {
-    rooms = rooms.filter((item) => item.id !== room.id);
-    showRoomMessage("會議室已刪除。", true);
+async function deleteRoom(room) {
+  try {
+    if (apiAvailable) {
+      const data = await apiRequest(`/api/rooms/${room.id}`, { method: "DELETE" });
+      if (data.disabled && data.room) {
+        rooms[rooms.findIndex((item) => item.id === room.id)] = data.room;
+      } else {
+        rooms = rooms.filter((item) => item.id !== room.id);
+      }
+    } else {
+      const hasBookings = bookings.some((booking) => booking.roomId === room.id);
+      if (hasBookings) room.status = "inactive";
+      else rooms = rooms.filter((item) => item.id !== room.id);
+      saveLocal(storageKeys.rooms, rooms);
+    }
+    showRoomMessage("會議室已更新。", true);
+    render();
+  } catch (error) {
+    showRoomMessage(error.message);
   }
-
-  saveRooms();
-  renderRoomOptions();
-  render();
 }
 
 function renderAccounts() {
   if (!hasPermission("accounts")) return;
-
   accountList.innerHTML = "";
   users.forEach((user) => {
     const item = document.createElement("article");
@@ -602,59 +561,46 @@ function renderAccounts() {
   });
 }
 
-function saveAccount(event) {
+async function saveAccount(event) {
   event.preventDefault();
-  if (!hasPermission("accounts")) {
-    showAccountMessage("你的角色沒有管理帳號的權限。");
-    return;
-  }
-
-  const id = accountIdInput.value || crypto.randomUUID();
-  const password = accountPasswordInput.value;
-  const existing = users.find((user) => user.id === id);
+  if (!hasPermission("accounts")) return showAccountMessage("你的角色沒有管理帳號的權限。");
   const account = {
-    id,
+    id: accountIdInput.value || crypto.randomUUID(),
     username: accountUsernameInput.value.trim(),
     name: accountNameInput.value.trim(),
-    password: password || existing?.password || "",
     role: accountRoleInput.value,
     status: accountStatusInput.value,
+    password: accountPasswordInput.value,
   };
-
-  if (!account.username || !account.name || !account.password) {
-    showAccountMessage("請完整填寫帳號、顯示名稱與密碼。");
-    return;
+  if (!account.username || !account.name || (!accountIdInput.value && !account.password)) return showAccountMessage("請完整填寫帳號資料。");
+  try {
+    if (apiAvailable) {
+      const path = accountIdInput.value ? `/api/users/${account.id}` : "/api/users";
+      const method = accountIdInput.value ? "PATCH" : "POST";
+      const data = await apiRequest(path, { method, body: JSON.stringify(account) });
+      const index = users.findIndex((item) => item.id === data.user.id);
+      if (index >= 0) users[index] = data.user;
+      else users.push(data.user);
+    } else {
+      const index = users.findIndex((item) => item.id === account.id);
+      const saved = { ...account, password: account.password || users[index]?.password || "" };
+      if (index >= 0) users[index] = saved;
+      else users.push(saved);
+      saveLocal(storageKeys.users, users);
+    }
+    resetAccountForm();
+    showAccountMessage("帳號已儲存。", true);
+    render();
+  } catch (error) {
+    showAccountMessage(error.message);
   }
-
-  const duplicated = users.some((user) => user.id !== id && user.username === account.username);
-  if (duplicated) {
-    showAccountMessage("帳號名稱已存在。");
-    return;
-  }
-
-  const index = users.findIndex((user) => user.id === id);
-  if (index >= 0) {
-    users[index] = account;
-  } else {
-    users.push(account);
-  }
-
-  saveUsers();
-  resetAccountForm();
-  showAccountMessage("帳號已儲存。", true);
-  refreshCurrentUser();
-  render();
 }
 
 function handleAccountAction(event) {
-  if (!hasPermission("accounts")) return;
-
   const button = event.target.closest("button[data-action]");
-  if (!button) return;
-
+  if (!button || !hasPermission("accounts")) return;
   const user = users.find((item) => item.id === button.dataset.id);
   if (!user) return;
-
   if (button.dataset.action === "edit") {
     accountIdInput.value = user.id;
     accountUsernameInput.value = user.username;
@@ -666,23 +612,93 @@ function handleAccountAction(event) {
     accountUsernameInput.focus();
     return;
   }
+  deleteAccount(user);
+}
 
-  const activeAdmins = users.filter((item) => item.role === "admin" && item.status === "active");
-  if (user.role === "admin" && activeAdmins.length <= 1) {
-    showAccountMessage("至少需要保留一個啟用中的系統管理員。");
-    return;
+async function deleteAccount(user) {
+  try {
+    if (apiAvailable) {
+      await apiRequest(`/api/users/${user.id}`, { method: "DELETE" });
+    }
+    users = users.filter((item) => item.id !== user.id);
+    saveLocal(storageKeys.users, users);
+    if (currentUser?.id === user.id) await logoutAdmin();
+    else {
+      showAccountMessage("帳號已刪除。", true);
+      render();
+    }
+  } catch (error) {
+    showAccountMessage(error.message);
   }
+}
 
-  users = users.filter((item) => item.id !== user.id);
-  saveUsers();
-
-  if (currentUser?.id === user.id) {
-    logoutAdmin();
-    return;
+async function deleteBooking(event) {
+  const button = event.target.closest("button[data-id]");
+  if (!button) return;
+  try {
+    if (apiAvailable) await apiRequest(`/api/bookings/${button.dataset.id}`, { method: "DELETE" });
+    bookings = bookings.filter((booking) => booking.id !== button.dataset.id);
+    saveLocal(storageKeys.bookings, bookings);
+    render();
+  } catch (error) {
+    showMessage(error.message);
   }
+}
 
-  showAccountMessage("帳號已刪除。", true);
+function clearPastBookings() {
+  const today = toDateValue(new Date());
+  bookings = bookings.filter((booking) => booking.date >= today);
+  if (!apiAvailable) saveLocal(storageKeys.bookings, bookings);
   render();
+}
+
+function syncFormDate() {
+  viewDateInput.value = dateInput.value;
+  reportDateInput.value = dateInput.value;
+  render();
+}
+
+function syncViewDate() {
+  dateInput.value = viewDateInput.value;
+  reportDateInput.value = viewDateInput.value;
+  render();
+}
+
+function updateAvailabilityHint() {
+  const draft = { id: "draft", roomId: roomSelect.value, date: dateInput.value, start: startTimeSelect.value, end: endTimeSelect.value };
+  availableHint.classList.remove("is-open", "is-busy");
+  if (!rooms.some((room) => room.status === "active")) {
+    availableHint.textContent = "無可用會議室";
+    availableHint.classList.add("is-busy");
+    return;
+  }
+  if (!draft.date || !draft.start || !draft.end || toMinutes(draft.start) >= toMinutes(draft.end)) {
+    availableHint.textContent = "選擇時段";
+    return;
+  }
+  if (hasConflict(draft)) {
+    availableHint.textContent = "時段已滿";
+    availableHint.classList.add("is-busy");
+    return;
+  }
+  availableHint.textContent = apiAvailable ? "可預約 · 資料庫" : "可預約";
+  availableHint.classList.add("is-open");
+}
+
+function switchPanel(event) {
+  const target = event.currentTarget.dataset.panel;
+  $$(".app-tab").forEach((button) => button.classList.toggle("is-active", button.dataset.panel === target));
+  $$(".panel-view").forEach((panel) => panel.classList.toggle("is-active", panel.id === target));
+}
+
+function changeView(event) {
+  currentView = event.currentTarget.dataset.view;
+  renderSchedule();
+}
+
+function changeReportView(event) {
+  reportView = event.currentTarget.dataset.reportView;
+  renderReports();
 }
 
 function resetRoomForm() {
@@ -700,102 +716,19 @@ function resetAccountForm() {
   showAccountMessage("");
 }
 
-function refreshCurrentUser() {
-  if (!currentUser) return;
-  const user = users.find((item) => item.id === currentUser.id && item.status === "active");
-  if (!user) {
-    logoutAdmin();
-    return;
-  }
-  currentUser = { id: user.id, username: user.username, name: user.name, role: user.role };
+function hasPermission(permission) {
+  if (!currentUser) return false;
+  return (roleConfig[currentUser.role]?.permissions || []).includes(permission);
 }
 
-function switchPanel(event) {
-  const target = event.currentTarget.dataset.panel;
-  appTabs.forEach((button) => button.classList.toggle("is-active", button.dataset.panel === target));
-  panelViews.forEach((panel) => panel.classList.toggle("is-active", panel.id === target));
-}
-
-function changeView(event) {
-  currentView = event.currentTarget.dataset.view;
-  renderSchedule();
-}
-
-function changeReportView(event) {
-  reportView = event.currentTarget.dataset.reportView;
-  renderReports();
-}
-
-function deleteBooking(event) {
-  const button = event.target.closest("button[data-id]");
-  if (!button) return;
-
-  bookings = bookings.filter((booking) => booking.id !== button.dataset.id);
-  saveBookings();
-  render();
-}
-
-function clearPastBookings() {
-  const today = toDateValue(new Date());
-  bookings = bookings.filter((booking) => booking.date >= today);
-  saveBookings();
-  render();
-}
-
-function syncFormDate() {
-  viewDateInput.value = dateInput.value;
-  reportDateInput.value = dateInput.value;
-  render();
-}
-
-function syncViewDate() {
-  dateInput.value = viewDateInput.value;
-  reportDateInput.value = viewDateInput.value;
-  render();
-}
-
-function updateAvailabilityHint() {
-  const draft = {
-    id: "draft",
-    roomId: roomSelect.value,
-    date: dateInput.value,
-    start: startTimeSelect.value,
-    end: endTimeSelect.value,
-  };
-
-  availableHint.classList.remove("is-open", "is-busy");
-
-  if (!rooms.some((room) => room.status === "active")) {
-    availableHint.textContent = "無可用會議室";
-    availableHint.classList.add("is-busy");
-    return;
-  }
-
-  if (!draft.date || !draft.start || !draft.end || toMinutes(draft.start) >= toMinutes(draft.end)) {
-    availableHint.textContent = "選擇時段";
-    return;
-  }
-
-  if (hasConflict(draft)) {
-    availableHint.textContent = "時段已滿";
-    availableHint.classList.add("is-busy");
-    return;
-  }
-
-  availableHint.textContent = "可預約";
-  availableHint.classList.add("is-open");
-}
-
-function createEmptyState(text) {
-  const empty = document.createElement("div");
-  empty.className = "empty-state";
-  empty.textContent = text;
-  return empty;
+function getBookingsInRange(start, end) {
+  return bookings
+    .filter((booking) => booking.date >= start && booking.date <= end)
+    .sort((a, b) => a.date.localeCompare(b.date) || toMinutes(a.start) - toMinutes(b.start) || a.roomId.localeCompare(b.roomId));
 }
 
 function getViewRange(date, view) {
   const base = new Date(`${date}T00:00:00`);
-
   if (view === "week") {
     const day = base.getDay() || 7;
     const start = new Date(base);
@@ -804,20 +737,10 @@ function getViewRange(date, view) {
     end.setDate(start.getDate() + 6);
     return { start: toDateValue(start), end: toDateValue(end) };
   }
-
   if (view === "month") {
-    const start = new Date(base.getFullYear(), base.getMonth(), 1);
-    const end = new Date(base.getFullYear(), base.getMonth() + 1, 0);
-    return { start: toDateValue(start), end: toDateValue(end) };
+    return { start: toDateValue(new Date(base.getFullYear(), base.getMonth(), 1)), end: toDateValue(new Date(base.getFullYear(), base.getMonth() + 1, 0)) };
   }
-
   return { start: date, end: date };
-}
-
-function getBookingsInRange(start, end) {
-  return bookings
-    .filter((booking) => booking.date >= start && booking.date <= end)
-    .sort((a, b) => a.date.localeCompare(b.date) || toMinutes(a.start) - toMinutes(b.start) || a.roomId.localeCompare(b.roomId));
 }
 
 function getViewLabel(view) {
@@ -828,16 +751,12 @@ function getViewLabel(view) {
 
 function getRangeLabel(range, view) {
   if (view === "day") return formatLongDate(range.start);
-  if (view === "month") {
-    return new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "long" }).format(new Date(`${range.start}T00:00:00`));
-  }
+  if (view === "month") return new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "long" }).format(new Date(`${range.start}T00:00:00`));
   return `${formatShortDate(range.start)} - ${formatShortDate(range.end)}`;
 }
 
 function getRangeDayCount(start, end) {
-  const startDate = new Date(`${start}T00:00:00`);
-  const endDate = new Date(`${end}T00:00:00`);
-  return Math.round((endDate - startDate) / 86400000) + 1;
+  return Math.round((new Date(`${end}T00:00:00`) - new Date(`${start}T00:00:00`)) / 86400000) + 1;
 }
 
 function getChartBuckets(range, view) {
@@ -849,17 +768,10 @@ function getChartBuckets(range, view) {
       { key: "evening", label: "晚上", count: 0 },
     ];
   }
-
   const buckets = [];
-  const start = new Date(`${range.start}T00:00:00`);
-  const end = new Date(`${range.end}T00:00:00`);
-  for (const date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+  for (const date = new Date(`${range.start}T00:00:00`); date <= new Date(`${range.end}T00:00:00`); date.setDate(date.getDate() + 1)) {
     const value = toDateValue(date);
-    buckets.push({
-      key: value,
-      label: view === "week" ? formatWeekday(value) : String(date.getDate()),
-      count: 0,
-    });
+    buckets.push({ key: value, label: view === "week" ? formatWeekday(value) : String(date.getDate()), count: 0 });
   }
   return buckets;
 }
@@ -874,21 +786,17 @@ function getTimeBucket(time) {
 
 function buildTimeOptions(start, end, interval) {
   const options = [];
-  for (let minute = toMinutes(start); minute <= toMinutes(end); minute += interval) {
-    options.push(toTimeValue(minute));
-  }
+  for (let minute = toMinutes(start); minute <= toMinutes(end); minute += interval) options.push(toTimeValue(minute));
   return options;
 }
 
 function toMinutes(time) {
-  const [hour, minute] = time.split(":").map(Number);
+  const [hour, minute] = String(time).split(":").map(Number);
   return hour * 60 + minute;
 }
 
 function toTimeValue(minutes) {
-  const hour = String(Math.floor(minutes / 60)).padStart(2, "0");
-  const minute = String(minutes % 60).padStart(2, "0");
-  return `${hour}:${minute}`;
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
 function nextTime(time) {
@@ -901,79 +809,44 @@ function toDateValue(date) {
 }
 
 function formatLongDate(date) {
-  return new Intl.DateTimeFormat("zh-TW", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  }).format(new Date(`${date}T00:00:00`));
+  return new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date(`${date}T00:00:00`));
 }
 
 function formatShortDate(date) {
-  return new Intl.DateTimeFormat("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
-    weekday: "short",
-  }).format(new Date(`${date}T00:00:00`));
+  return new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", weekday: "short" }).format(new Date(`${date}T00:00:00`));
 }
 
 function formatWeekday(date) {
-  return new Intl.DateTimeFormat("zh-TW", {
-    weekday: "short",
-  }).format(new Date(`${date}T00:00:00`));
+  return new Intl.DateTimeFormat("zh-TW", { weekday: "short" }).format(new Date(`${date}T00:00:00`));
 }
 
 function formatNumber(value) {
   return Number(value).toLocaleString("zh-TW", { maximumFractionDigits: 1 });
 }
 
-function loadRooms() {
+function createEmptyState(text) {
+  const empty = document.createElement("div");
+  empty.className = "empty-state";
+  empty.textContent = text;
+  return empty;
+}
+
+function loadLocal(key, fallback) {
   try {
-    const savedRooms = JSON.parse(localStorage.getItem(roomStorageKey));
-    if (Array.isArray(savedRooms) && savedRooms.length) return savedRooms;
+    return JSON.parse(localStorage.getItem(key)) || fallback;
   } catch {
-    return defaultRooms;
-  }
-  return defaultRooms;
-}
-
-function saveRooms() {
-  localStorage.setItem(roomStorageKey, JSON.stringify(rooms));
-}
-
-function loadUsers() {
-  try {
-    const savedUsers = JSON.parse(localStorage.getItem(userStorageKey));
-    if (Array.isArray(savedUsers) && savedUsers.length) return savedUsers;
-  } catch {
-    return defaultUsers;
-  }
-  return defaultUsers;
-}
-
-function saveUsers() {
-  localStorage.setItem(userStorageKey, JSON.stringify(users));
-}
-
-function loadCurrentUser() {
-  const userId = sessionStorage.getItem(sessionStorageKey);
-  if (!userId) return null;
-
-  const user = users.find((item) => item.id === userId && item.status === "active");
-  if (!user) return null;
-  return { id: user.id, username: user.username, name: user.name, role: user.role };
-}
-
-function loadBookings() {
-  try {
-    return JSON.parse(localStorage.getItem(bookingStorageKey)) || [];
-  } catch {
-    return [];
+    return fallback;
   }
 }
 
-function saveBookings() {
-  localStorage.setItem(bookingStorageKey, JSON.stringify(bookings));
+function saveLocal(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function loadLocalCurrentUser() {
+  const id = sessionStorage.getItem(storageKeys.currentUser);
+  const user = users.find((item) => item.id === id && item.status === "active");
+  return user ? { id: user.id, username: user.username, name: user.name, role: user.role } : null;
 }
 
 function showMessage(message, success = false) {
@@ -996,10 +869,6 @@ function showAccountMessage(message, success = false) {
   accountFormMessage.classList.toggle("success", success);
 }
 
-function clearMessage() {
-  showMessage("");
-}
-
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -1008,5 +877,3 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-
-init();

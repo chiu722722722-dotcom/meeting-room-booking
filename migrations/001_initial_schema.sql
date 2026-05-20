@@ -1,7 +1,7 @@
 create table if not exists users (
-  id uuid primary key,
+  id text primary key,
   line_works_user_id text unique,
-  username text unique,
+  username text unique not null,
   display_name text not null,
   email text,
   password_hash text,
@@ -12,7 +12,7 @@ create table if not exists users (
 );
 
 create table if not exists rooms (
-  id uuid primary key,
+  id text primary key,
   name text not null unique,
   capacity integer not null check (capacity > 0),
   equipment text not null default '',
@@ -22,9 +22,9 @@ create table if not exists rooms (
 );
 
 create table if not exists bookings (
-  id uuid primary key,
-  room_id uuid not null references rooms(id),
-  user_id uuid references users(id),
+  id text primary key,
+  room_id text not null references rooms(id),
+  user_id text references users(id),
   host_name text not null,
   subject text not null,
   date date not null,
@@ -39,8 +39,8 @@ create table if not exists bookings (
 );
 
 create table if not exists audit_logs (
-  id uuid primary key,
-  actor_user_id uuid references users(id),
+  id text primary key,
+  actor_user_id text references users(id),
   action text not null,
   target_type text not null,
   target_id text,
