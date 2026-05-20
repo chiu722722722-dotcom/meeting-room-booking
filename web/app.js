@@ -30,7 +30,7 @@ let currentUser = loadLocalCurrentUser();
 let currentView = "day";
 let reportView = "day";
 let apiAvailable = false;
-let selectedRoomStatusFilter = "all";
+let selectedRoomStatusFilter = "";
 let auditLogs = [];
 
 const $ = (selector) => document.querySelector(selector);
@@ -258,6 +258,7 @@ function renderRoomOptions() {
     .filter((room) => room.status === "active")
     .forEach((room) => roomSelect.append(new Option(`${room.name}（${room.capacity}人）`, room.id)));
   if ([...roomSelect.options].some((option) => option.value === previous)) roomSelect.value = previous;
+  else selectBossRoom(roomSelect);
 }
 
 function renderRoomStatusFilter(activeRooms) {
@@ -265,7 +266,8 @@ function renderRoomStatusFilter(activeRooms) {
   roomStatusFilter.innerHTML = "";
   roomStatusFilter.append(new Option("全部會議室", "all"));
   activeRooms.forEach((room) => roomStatusFilter.append(new Option(`${room.name}（${room.capacity}人）`, room.id)));
-  selectedRoomStatusFilter = [...roomStatusFilter.options].some((option) => option.value === previous) ? previous : "all";
+  const fallback = activeRooms.find(isBossRoom)?.id || "all";
+  selectedRoomStatusFilter = [...roomStatusFilter.options].some((option) => option.value === previous) ? previous : fallback;
   roomStatusFilter.value = selectedRoomStatusFilter;
 }
 
@@ -728,6 +730,15 @@ function syncViewDate() {
 function changeRoomStatusFilter(event) {
   selectedRoomStatusFilter = event.currentTarget.value;
   renderSchedule();
+}
+
+function selectBossRoom(selectElement) {
+  const bossOption = [...selectElement.options].find((option) => isBossRoom({ name: option.textContent }));
+  if (bossOption) selectElement.value = bossOption.value;
+}
+
+function isBossRoom(room) {
+  return String(room?.name || "").toLowerCase().includes("boss");
 }
 
 function updateAvailabilityHint() {
