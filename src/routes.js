@@ -7,7 +7,7 @@ import { buildLineWorksAuthUrl, exchangeLineWorksCode, fetchLineWorksUser, sendB
 export const router = express.Router();
 
 const rolePermissions = {
-  admin: ["reports", "rooms", "accounts"],
+  admin: ["reports", "rooms", "accounts", "logs"],
   manager: ["reports", "rooms"],
   viewer: ["reports"],
   user: [],
@@ -215,6 +215,21 @@ router.get("/api/reports/summary", requirePermission("reports"), async (req, res
     const bookings = await listBookings(range.start, range.end);
     const rooms = await listRooms("all");
     res.json(buildReport(range, req.query.view || "day", bookings, rooms));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/api/audit-logs", requirePermission("logs"), async (req, res, next) => {
+  try {
+    const result = await query(
+      `select audit_logs.*, users.display_name as actor_name, users.username as actor_username
+       from audit_logs
+       left join users on users.id = audit_logs.actor_user_id
+       order by audit_logs.created_at desc
+       limit 100`,
+    );
+    res.json({ logs: result.rows.map(mapAuditLog) });
   } catch (error) {
     next(error);
   }
@@ -477,6 +492,19 @@ function mapUser(row) {
     email: row.email || "",
     role: row.role,
     status: row.status,
+  };
+}
+
+function mapAuditLog(row) {
+  return {
+    id: row.id,
+    action: row.action,
+    targetType: row.target_type,
+    targetId: row.target_id || "",
+    actorName: row.actor_name || "系統",
+    actorUsername: row.actor_username || "",
+    payload: row.payload || {},
+    createdAt: row.created_at,
   };
 }
 

@@ -350,6 +350,10 @@ textarea:focus {
   text-align: center;
 }
 
+.room-status-filter {
+  margin: -2px 0 14px;
+}
+
 .report-grid span {
   display: block;
   color: var(--muted);
@@ -516,7 +520,8 @@ textarea:focus {
 .booking-list,
 .report-bars,
 .admin-room-list,
-.account-list {
+.account-list,
+.audit-log-list {
   display: grid;
   gap: 10px;
 }
@@ -643,6 +648,30 @@ textarea:focus {
   color: #475467 !important;
 }
 
+.audit-log-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+
+.audit-log-item p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.audit-log-item time {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .report-bar {
   display: grid;
   gap: 9px;
@@ -699,6 +728,14 @@ textarea:focus {
 
   .compact-date {
     flex-basis: 100%;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-log-item {
+    grid-template-columns: 1fr;
   }
 }
 

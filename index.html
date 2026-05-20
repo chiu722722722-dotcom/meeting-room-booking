@@ -102,6 +102,13 @@
             <span id="roomCount">0 間會議室</span>
           </div>
 
+          <label class="room-status-filter">
+            查看會議室
+            <select id="roomStatusFilter">
+              <option value="all">全部會議室</option>
+            </select>
+          </label>
+
           <div id="roomGrid" class="room-grid"></div>
 
           <div class="list-heading">
@@ -291,6 +298,14 @@
             </form>
 
             <div id="accountList" class="account-list"></div>
+          </section>
+
+          <section class="admin-card" data-permission="logs" aria-labelledby="logAdminTitle">
+            <div class="section-title">
+              <h2 id="logAdminTitle">操作紀錄</h2>
+              <button id="refreshLogs" class="ghost-action" type="button">重新整理</button>
+            </div>
+            <div id="auditLogList" class="audit-log-list"></div>
           </section>
         </div>
       </section>
