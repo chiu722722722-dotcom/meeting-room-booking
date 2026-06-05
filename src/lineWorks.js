@@ -2,6 +2,9 @@ import fs from "node:fs/promises";
 import jwt from "jsonwebtoken";
 import { config } from "./config.js";
 
+let cachedBotToken = null;
+let cachedBotTokenExpiresAt = 0;
+
 export function buildLineWorksAuthUrl(state) {
   const url = new URL(config.lineWorks.authorizationUrl);
   url.searchParams.set("response_type", "code");
@@ -45,7 +48,7 @@ export async function fetchLineWorksUser(accessToken) {
 }
 
 export async function createServiceAccountJwt() {
-  const privateKey = await fs.readFile(config.lineWorks.privateKeyPath, "utf8");
+  const privateKey = await readPrivateKey();
   const now = Math.floor(Date.now() / 1000);
   return jwt.sign(
     {
@@ -59,6 +62,48 @@ export async function createServiceAccountJwt() {
   );
 }
 
+async function readPrivateKey() {
+  if (config.lineWorks.privateKey) {
+    return config.lineWorks.privateKey.replace(/\\n/g, "\n");
+  }
+  if (config.lineWorks.privateKeyPath) {
+    return fs.readFile(config.lineWorks.privateKeyPath, "utf8");
+  }
+  throw new Error("LINE WORKS private key is not configured.");
+}
+
+async function getBotAccessToken() {
+  if (process.env.LINE_WORKS_BOT_ACCESS_TOKEN) return process.env.LINE_WORKS_BOT_ACCESS_TOKEN;
+  if (cachedBotToken && cachedBotTokenExpiresAt > Date.now() + 60000) return cachedBotToken;
+  if (!config.lineWorks.clientId || !config.lineWorks.clientSecret || !config.lineWorks.serviceAccountId) {
+    throw new Error("LINE WORKS service account settings are not configured.");
+  }
+
+  const assertion = await createServiceAccountJwt();
+  const body = new URLSearchParams({
+    grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    assertion,
+    client_id: config.lineWorks.clientId,
+    client_secret: config.lineWorks.clientSecret,
+    scope: config.lineWorks.botScope,
+  });
+
+  const response = await fetch(config.lineWorks.tokenUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+
+  if (!response.ok) {
+    throw new Error(`LINE WORKS bot token failed: ${response.status}`);
+  }
+
+  const token = await response.json();
+  cachedBotToken = token.access_token;
+  cachedBotTokenExpiresAt = Date.now() + Number(token.expires_in || 3600) * 1000;
+  return cachedBotToken;
+}
+
 export async function sendBotMessageToUser(userId, text) {
   return sendBotMessage(`/bots/${config.lineWorks.botId}/users/${encodeURIComponent(userId)}/messages`, text);
 }
@@ -69,10 +114,10 @@ export async function sendBotMessageToAdminChannel(text) {
 }
 
 async function sendBotMessage(path, text) {
-  const token = process.env.LINE_WORKS_BOT_ACCESS_TOKEN;
-  if (!token) {
-    return { skipped: true, reason: "LINE_WORKS_BOT_ACCESS_TOKEN is not configured." };
+  if (!config.lineWorks.botId) {
+    return { skipped: true, reason: "LINE_WORKS_BOT_ID is not configured." };
   }
+  const token = await getBotAccessToken();
 
   const response = await fetch(`https://www.worksapis.com/v1.0${path}`, {
     method: "POST",

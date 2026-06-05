@@ -1,33 +1,99 @@
-# LINE WORKS 設定檢查清單
+# LINE WORKS 掛載設定清單
 
-## Developer Console
+正式網址：
 
-- [ ] 建立 API / OAuth App
-- [ ] 設定正式 HTTPS Redirect URI
-- [ ] 設定 Application Login URL
-- [ ] 建立 Bot
-- [ ] 設定 Bot 可使用的網域 / 成員
-- [ ] 建立 Service Account
-- [ ] 下載 Private Key
-- [ ] 設定 Bot scope：`bot.message`
+```text
+https://www.cheapneeder.com
+```
 
-## 系統部署
+SSO Redirect URL：
 
-- [ ] 準備 HTTPS 網域
-- [ ] 部署後端 API
-- [ ] 部署前端 Web App
-- [ ] 設定資料庫
-- [ ] 設定 `.env`
-- [ ] 建立第一位系統管理員
-- [ ] 測試手機版 LINE WORKS 內建瀏覽器
+```text
+https://www.cheapneeder.com/auth/line-works/callback
+```
 
-## 測試情境
+## 1. 先掛 LINE WORKS 選單入口
 
-- [ ] 一般使用者可建立預約
-- [ ] 重疊時段會被阻擋
-- [ ] 管理者可進入後台
-- [ ] 檢視者只能看報表
-- [ ] 系統管理員可管理帳號
-- [ ] 預約成功會發 LINE WORKS Bot 通知
-- [ ] 取消預約會發 LINE WORKS Bot 通知
-- [ ] 停用會議室不再出現在前台選單
+在 LINE WORKS Admin 設定一個選單或捷徑，讓使用者可以從 LINE WORKS 打開系統。
+
+建議設定：
+
+| 項目 | 值 |
+| --- | --- |
+| 顯示名稱 | 會議室預約 |
+| URL | `https://www.cheapneeder.com` |
+| 類型 | URL / Web link |
+| 圖示 | 正方形 PNG |
+
+## 2. 設定 LINE WORKS SSO
+
+到 LINE WORKS Developer Console 建立 OAuth / SSO App。
+
+需要填入：
+
+| 項目 | 值 |
+| --- | --- |
+| Redirect URL | `https://www.cheapneeder.com/auth/line-works/callback` |
+| Response Type | `code` |
+| OAuth Scope | `openid profile email` |
+
+建立後取得：
+
+- Client ID
+- Client Secret
+- LINE WORKS domain / tenant 資訊
+
+接著到 DigitalOcean App Platform 的環境變數新增：
+
+```text
+LINE_WORKS_CLIENT_ID=你的 Client ID
+LINE_WORKS_CLIENT_SECRET=你的 Client Secret
+LINE_WORKS_REDIRECT_URI=https://www.cheapneeder.com/auth/line-works/callback
+LINE_WORKS_AUTHORIZATION_URL=https://auth.worksmobile.com/oauth2/v2.0/authorize
+LINE_WORKS_TOKEN_URL=https://auth.worksmobile.com/oauth2/v2.0/token
+LINE_WORKS_USERINFO_URL=https://www.worksapis.com/v1.0/users/me
+```
+
+設定完成後，後台登入頁會出現「使用 LINE WORKS 登入」。
+
+## 3. 設定 Bot 通知
+
+若要在預約建立 / 刪除時通知 LINE WORKS 聊天室，需要在 Developer Console 建立 Bot 與 Service Account。
+
+需要準備：
+
+- Bot ID
+- Service Account ID
+- Private Key
+- 通知聊天室 Channel ID
+- OAuth Scope：`bot.message`
+
+DigitalOcean 環境變數：
+
+```text
+LINE_WORKS_BOT_ID=你的 Bot ID
+LINE_WORKS_SERVICE_ACCOUNT_ID=你的 Service Account ID
+LINE_WORKS_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
+LINE_WORKS_BOT_SCOPE=bot.message
+LINE_WORKS_ADMIN_CHANNEL_ID=通知聊天室 Channel ID
+```
+
+`LINE_WORKS_PRIVATE_KEY` 請設定成 Secret，不要提交到 Git。
+
+## 4. 測試
+
+1. 打開 `https://www.cheapneeder.com`
+2. 進入後台管理
+3. 點「使用 LINE WORKS 登入」
+4. 完成 LINE WORKS 授權後應回到預約系統
+5. 建立一筆測試預約
+6. 確認聊天室收到通知
+7. 到後台「操作紀錄」確認有 log
+
+## 5. 目前系統已完成的接線口
+
+- `/auth/line-works`
+- `/auth/line-works/callback`
+- LINE WORKS 使用者登入後自動建立或更新本系統帳號
+- 預約建立 / 刪除時呼叫 LINE WORKS Bot 通知
+- Bot 通知支援 Service Account JWT 自動換 access token

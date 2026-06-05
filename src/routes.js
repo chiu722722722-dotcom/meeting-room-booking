@@ -1,6 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import { config } from "./config.js";
 import { healthCheckDatabase, query } from "./db.js";
 import { buildLineWorksAuthUrl, exchangeLineWorksCode, fetchLineWorksUser, sendBotMessageToAdminChannel, sendBotMessageToUser } from "./lineWorks.js";
 
@@ -64,6 +65,10 @@ router.post("/api/auth/logout", (req, res) => {
 });
 
 router.get("/auth/line-works", (req, res) => {
+  if (!config.lineWorks.clientId || !config.lineWorks.clientSecret || !config.lineWorks.redirectUri) {
+    res.status(503).send("LINE WORKS SSO is not configured.");
+    return;
+  }
   const state = crypto.randomBytes(24).toString("hex");
   req.session.lineWorksState = state;
   res.redirect(buildLineWorksAuthUrl(state));

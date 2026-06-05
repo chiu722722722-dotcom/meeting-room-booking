@@ -325,6 +325,19 @@ textarea:focus {
   background: var(--accent);
 }
 
+.line-works-action {
+  display: inline-flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #20c45a;
+  border-radius: 8px;
+  color: #116b33;
+  background: #f1fff5;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .ghost-action {
   border: 1px solid var(--line);
   padding: 0 12px;

@@ -14,6 +14,7 @@ export const config = {
     userInfoUrl: process.env.LINE_WORKS_USERINFO_URL || "https://www.worksapis.com/v1.0/users/me",
     botId: process.env.LINE_WORKS_BOT_ID || "",
     serviceAccountId: process.env.LINE_WORKS_SERVICE_ACCOUNT_ID || "",
+    privateKey: process.env.LINE_WORKS_PRIVATE_KEY || "",
     privateKeyPath: process.env.LINE_WORKS_PRIVATE_KEY_PATH || "",
     botScope: process.env.LINE_WORKS_BOT_SCOPE || "bot.message",
     adminChannelId: process.env.LINE_WORKS_ADMIN_CHANNEL_ID || "",
