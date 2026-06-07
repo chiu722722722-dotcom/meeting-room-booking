@@ -9,6 +9,7 @@ export const config = {
     clientId: process.env.LINE_WORKS_CLIENT_ID || "",
     clientSecret: process.env.LINE_WORKS_CLIENT_SECRET || "",
     domain: process.env.LINE_WORKS_DOMAIN || "",
+    ownerEmail: process.env.LINE_WORKS_OWNER_EMAIL || "",
     redirectUri: process.env.LINE_WORKS_REDIRECT_URI || "",
     authorizationUrl: process.env.LINE_WORKS_AUTHORIZATION_URL || "https://auth.worksmobile.com/oauth2/v2.0/authorize",
     tokenUrl: process.env.LINE_WORKS_TOKEN_URL || "https://auth.worksmobile.com/oauth2/v2.0/token",

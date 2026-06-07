@@ -179,9 +179,9 @@ router.get("/api/bookings", async (req, res, next) => {
   }
 });
 
-router.post("/api/bookings", async (req, res, next) => {
+router.post("/api/bookings", requireUser, async (req, res, next) => {
   try {
-    const booking = normalizeBooking(req.body);
+    const booking = normalizeBooking({ ...req.body, host: req.session.user.name });
     const validation = await validateBooking(booking);
     if (!validation.ok) {
       res.status(400).json(validation);
@@ -214,13 +214,19 @@ router.post("/api/bookings", async (req, res, next) => {
   }
 });
 
-router.delete("/api/bookings/:id", async (req, res, next) => {
+router.delete("/api/bookings/:id", requireUser, async (req, res, next) => {
   try {
-    const result = await query("delete from bookings where id = $1 returning *", [req.params.id]);
-    if (!result.rowCount) {
+    const bookingResult = await query("select * from bookings where id = $1", [req.params.id]);
+    if (!bookingResult.rowCount) {
       res.status(404).json({ ok: false, message: "找不到預約。" });
       return;
     }
+    const target = bookingResult.rows[0];
+    if (target.user_id !== req.session.user.id && !req.session.user.isOwner) {
+      res.status(403).json({ ok: false, message: "只能取消自己建立的預約。" });
+      return;
+    }
+    const result = await query("delete from bookings where id = $1 returning *", [req.params.id]);
     const removed = mapBooking(result.rows[0]);
     await audit(req, "booking.delete", "booking", removed.id, removed);
     notifyBookingChange(req.session.user, `會議室預約已取消：${removed.subject} ${removed.date} ${removed.start}-${removed.end}`);
@@ -438,13 +444,17 @@ async function validateBooking(booking) {
 
 async function upsertLineWorksUser(lineWorksUser) {
   const id = lineWorksUser.userId || lineWorksUser.id || lineWorksUser.sub || lineWorksUser.email;
+  const email = String(lineWorksUser.email || "").trim().toLowerCase();
+  const ownerEmail = config.lineWorks.ownerEmail.trim().toLowerCase();
+  const role = ownerEmail && email === ownerEmail ? "admin" : "user";
   const result = await query(
     `insert into users (id, line_works_user_id, username, display_name, email, role, status)
-     values ($1, $2, $3, $4, $5, 'user', 'active')
+     values ($1, $2, $3, $4, $5, $6, 'active')
      on conflict (id) do update
        set line_works_user_id = excluded.line_works_user_id,
            display_name = excluded.display_name,
            email = excluded.email,
+           role = case when excluded.role = 'admin' then 'admin' else users.role end,
            updated_at = now()
      returning *`,
     [
@@ -453,6 +463,7 @@ async function upsertLineWorksUser(lineWorksUser) {
       lineWorksUser.email || lineWorksUser.preferred_username || id,
       lineWorksUser.userName || lineWorksUser.displayName || lineWorksUser.name || lineWorksUser.email || "LINE WORKS User",
       lineWorksUser.email || "",
+      role,
     ],
   );
   return result.rows[0];
@@ -494,6 +505,7 @@ function mapRoom(row) {
 function mapBooking(row) {
   return {
     id: row.id,
+    userId: row.user_id || "",
     roomId: row.room_id,
     date: toDateString(row.date),
     start: String(row.start_time).slice(0, 5),
@@ -530,6 +542,7 @@ function mapAuditLog(row) {
 }
 
 function toSessionUser(row) {
+  const ownerEmail = config.lineWorks.ownerEmail.trim().toLowerCase();
   return {
     id: row.id,
     username: row.username,
@@ -537,6 +550,7 @@ function toSessionUser(row) {
     email: row.email || "",
     lineWorksUserId: row.line_works_user_id || "",
     role: row.role,
+    isOwner: Boolean(ownerEmail && String(row.email || "").trim().toLowerCase() === ownerEmail),
   };
 }
 
@@ -590,6 +604,11 @@ function notifyBookingChange(user, text) {
 function requireAdmin(req, res, next) {
   if (req.session.user?.role === "admin") return next();
   res.status(403).json({ ok: false, message: "Admin permission required." });
+}
+
+function requireUser(req, res, next) {
+  if (req.session.user) return next();
+  res.status(401).json({ ok: false, message: "請先使用 LINE WORKS 帳號登入。" });
 }
 
 function requirePermission(permission) {

@@ -33,6 +33,7 @@ let reportView = "day";
 let apiAvailable = false;
 let selectedRoomStatusFilter = "";
 let auditLogs = [];
+let isWoffContext = false;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
@@ -47,6 +48,8 @@ const hostInput = $("#host");
 const subjectInput = $("#subject");
 const noteInput = $("#note");
 const form = $("#bookingForm");
+const bookingSubmitButton = form.querySelector('button[type="submit"]');
+const bookingLogin = $("#bookingLogin");
 const formMessage = $("#formMessage");
 const availableHint = $("#availableHint");
 const scheduleTitle = $("#scheduleTitle");
@@ -100,6 +103,8 @@ const resetAccountFormButton = $("#resetAccountForm");
 const accountList = $("#accountList");
 const auditLogList = $("#auditLogList");
 const refreshLogsButton = $("#refreshLogs");
+const appTabs = $("#appTabs");
+const adminTab = $("#adminTab");
 
 init();
 
@@ -119,6 +124,7 @@ async function initializeWoffSession() {
   const params = new URLSearchParams(window.location.search);
   const launchedFromWoff = params.has("woff.state") || params.has("access_token");
   if (!launchedFromWoff || !window.woff) return;
+  isWoffContext = true;
 
   try {
     await window.woff.init({ woffId: WOFF_ID });
@@ -213,7 +219,7 @@ async function handleSubmit(event) {
     start: startTimeSelect.value,
     end: endTimeSelect.value,
     attendees: Number(attendeesInput.value),
-    host: hostInput.value.trim(),
+    host: currentUser?.name || "",
     subject: subjectInput.value.trim(),
     note: noteInput.value.trim(),
   };
@@ -269,11 +275,32 @@ function hasConflict(target) {
 function render() {
   renderRoomOptions();
   renderSchedule();
+  renderIdentityAndAccess();
   renderAdminAuth();
   renderReports();
   renderAdminRooms();
   renderAccounts();
   renderAuditLogs();
+}
+
+function renderIdentityAndAccess() {
+  const loggedIn = Boolean(currentUser);
+  hostInput.value = currentUser?.name || "";
+  hostInput.readOnly = true;
+  bookingSubmitButton.disabled = !loggedIn;
+  bookingLogin.classList.toggle("is-hidden", loggedIn || isWoffContext);
+
+  if (!loggedIn && isWoffContext) {
+    showMessage("正在等待 LINE WORKS 登入，請重新開啟 WOFF 頁面。");
+  }
+
+  const hideAdminInWoff = isWoffContext && !currentUser?.isOwner;
+  appTabs.classList.toggle("is-hidden", hideAdminInWoff);
+  adminTab.classList.toggle("is-hidden", hideAdminInWoff);
+  if (hideAdminInWoff) {
+    $$(".app-tab").forEach((button) => button.classList.toggle("is-active", button.dataset.panel === "bookingPanel"));
+    $$(".panel-view").forEach((panel) => panel.classList.toggle("is-active", panel.id === "bookingPanel"));
+  }
 }
 
 function renderRoomOptions() {
@@ -360,13 +387,14 @@ function createBookingItem(booking) {
   const room = rooms.find((item) => item.id === booking.roomId);
   const item = document.createElement("article");
   item.className = "booking-item";
+  const canDelete = Boolean(currentUser && (currentUser.isOwner || booking.userId === currentUser.id));
   item.innerHTML = `
     <div>
       <h3>${escapeHtml(booking.subject)}</h3>
       <p>${formatShortDate(booking.date)} · ${escapeHtml(room?.name || "未知會議室")} · ${booking.start}-${booking.end} · ${escapeHtml(booking.host)} · ${booking.attendees} 人</p>
       ${booking.note ? `<p class="booking-note">${escapeHtml(booking.note)}</p>` : ""}
     </div>
-    <button type="button" class="delete-action" data-id="${booking.id}">取消</button>
+    ${canDelete ? `<button type="button" class="delete-action" data-id="${booking.id}">取消</button>` : ""}
   `;
   return item;
 }

@@ -325,6 +325,11 @@ textarea:focus {
   background: var(--accent);
 }
 
+.primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .line-works-action {
   display: inline-flex;
   min-height: 50px;
