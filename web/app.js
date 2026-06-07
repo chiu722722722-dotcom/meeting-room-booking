@@ -151,8 +151,14 @@ function bindEvents() {
   reportDateInput.addEventListener("change", renderReports);
   roomStatusFilter.addEventListener("change", changeRoomStatusFilter);
   roomSelect.addEventListener("change", updateAvailabilityHint);
-  startTimeSelect.addEventListener("change", updateAvailabilityHint);
-  endTimeSelect.addEventListener("change", updateAvailabilityHint);
+  startTimeSelect.addEventListener("change", () => {
+    syncEndTimeToOneHour();
+    updateAvailabilityHint();
+  });
+  endTimeSelect.addEventListener("change", () => {
+    syncEndTimeToOneHour();
+    updateAvailabilityHint();
+  });
   clearPastButton.addEventListener("click", clearPastBookings);
   bookingList.addEventListener("click", deleteBooking);
   $$(".view-tab").forEach((button) => button.addEventListener("click", changeView));
@@ -201,11 +207,13 @@ function renderTimeOptions() {
   startTimeSelect.innerHTML = "";
   endTimeSelect.innerHTML = "";
   timeOptions.forEach((time, index) => {
-    startTimeSelect.append(new Option(time, time));
+    if (toMinutes(time) + 60 <= toMinutes(timeOptions.at(-1))) {
+      startTimeSelect.append(new Option(time, time));
+    }
     if (index > 0) endTimeSelect.append(new Option(time, time));
   });
   startTimeSelect.value = "09:00";
-  endTimeSelect.value = "10:00";
+  syncEndTimeToOneHour();
 }
 
 async function handleSubmit(event) {
@@ -241,8 +249,8 @@ async function handleSubmit(event) {
     dateInput.value = booking.date;
     attendeesInput.value = "4";
     roomSelect.value = booking.roomId;
-    startTimeSelect.value = booking.end;
-    endTimeSelect.value = nextTime(booking.end) || booking.end;
+    startTimeSelect.value = [...startTimeSelect.options].some((option) => option.value === booking.end) ? booking.end : "09:00";
+    syncEndTimeToOneHour();
     showMessage(apiAvailable ? "預約已建立並儲存到資料庫。" : "預約已建立。", true);
     if (hasPermission("logs")) await loadAuditLogs();
     render();
@@ -961,8 +969,11 @@ function toTimeValue(minutes) {
   return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
-function nextTime(time) {
-  return timeOptions.find((option) => toMinutes(option) > toMinutes(time));
+function syncEndTimeToOneHour() {
+  const endTime = toTimeValue(toMinutes(startTimeSelect.value) + 60);
+  if ([...endTimeSelect.options].some((option) => option.value === endTime)) {
+    endTimeSelect.value = endTime;
+  }
 }
 
 function toDateValue(date) {

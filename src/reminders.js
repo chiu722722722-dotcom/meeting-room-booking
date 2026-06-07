@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { buildBookingNotification, buildCancelUrl } from "./bookingNotifications.js";
 import { pool, query } from "./db.js";
 import { sendBotMessageToUser } from "./lineWorks.js";
 
@@ -64,6 +65,9 @@ async function getPendingReminders() {
        bookings.date,
        bookings.start_time,
        bookings.end_time,
+       bookings.attendees,
+       bookings.note,
+       bookings.user_id,
        rooms.name as room_name,
        users.line_works_user_id
      from booking_reminders
@@ -86,15 +90,22 @@ async function deliverReminder(reminder) {
   const date = toDateString(reminder.date);
   const start = String(reminder.start_time).slice(0, 5);
   const end = String(reminder.end_time).slice(0, 5);
-  const text = [
-    "會議提醒",
-    `您預約的「${reminder.subject}」將於一小時後開始。`,
-    `會議室：${reminder.room_name}`,
-    `時間：${date} ${start}-${end}`,
-  ].join("\n");
+  const booking = {
+    id: reminder.booking_id,
+    userId: reminder.user_id,
+    subject: reminder.subject,
+    date,
+    start,
+    end,
+    attendees: Number(reminder.attendees),
+    note: reminder.note || "",
+  };
+  const content = buildBookingNotification("會議將於一小時後開始", booking, {
+    cancelUrl: buildCancelUrl(reminder.booking_id, reminder.user_id),
+  });
 
   try {
-    const result = await sendBotMessageToUser(reminder.line_works_user_id, text);
+    const result = await sendBotMessageToUser(reminder.line_works_user_id, content);
     if (result?.skipped) throw new Error(result.reason || "LINE WORKS reminder was skipped.");
     await query(
       `update booking_reminders

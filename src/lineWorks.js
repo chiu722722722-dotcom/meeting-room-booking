@@ -127,10 +127,7 @@ async function sendBotMessage(path, text) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      content: {
-        type: "text",
-        text,
-      },
+      content: typeof text === "string" ? { type: "text", text } : text,
     }),
   });
 

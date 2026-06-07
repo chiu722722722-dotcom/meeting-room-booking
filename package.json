@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "check": "node --check src/server.js && node --check src/lineWorks.js && node --check src/reminders.js && node --check src/routes.js"
+    "check": "node --check src/server.js && node --check src/lineWorks.js && node --check src/bookingNotifications.js && node --check src/reminders.js && node --check src/routes.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

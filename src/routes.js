@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { config } from "./config.js";
 import { healthCheckDatabase, query } from "./db.js";
+import { buildBookingNotification, buildCancelUrl, verifyCancelSignature } from "./bookingNotifications.js";
 import { buildLineWorksAuthUrl, exchangeLineWorksCode, fetchLineWorksUser, sendBotMessageToAdminChannel, sendBotMessageToUser } from "./lineWorks.js";
 
 export const router = express.Router();
@@ -207,7 +208,12 @@ router.post("/api/bookings", requireUser, async (req, res, next) => {
     );
     const saved = mapBooking(result.rows[0]);
     await audit(req, "booking.create", "booking", saved.id, saved);
-    notifyBookingChange(req.session.user, `會議室預約已建立：${saved.subject} ${saved.date} ${saved.start}-${saved.end}`);
+    notifyBookingChange(
+      req.session.user,
+      buildBookingNotification("會議室預約已建立", saved, {
+        cancelUrl: buildCancelUrl(saved.id, req.session.user.id),
+      }),
+    );
     res.status(201).json({ booking: saved });
   } catch (error) {
     next(error);
@@ -229,8 +235,83 @@ router.delete("/api/bookings/:id", requireUser, async (req, res, next) => {
     const result = await query("delete from bookings where id = $1 returning *", [req.params.id]);
     const removed = mapBooking(result.rows[0]);
     await audit(req, "booking.delete", "booking", removed.id, removed);
-    notifyBookingChange(req.session.user, `會議室預約已取消：${removed.subject} ${removed.date} ${removed.start}-${removed.end}`);
+    notifyBookingChange(
+      req.session.user,
+      buildBookingNotification("會議室預約已取消", removed, { accentColor: "#B42318" }),
+    );
     res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/booking/cancel/:id", async (req, res, next) => {
+  try {
+    const userId = String(req.query.user || "");
+    const signature = String(req.query.signature || "");
+    if (!verifyCancelSignature(req.params.id, userId, signature)) {
+      sendCancelResultPage(res, 403, "取消連結無效", "此取消預約連結無效或已遭修改。");
+      return;
+    }
+
+    const bookingResult = await query("select * from bookings where id = $1 and user_id = $2", [req.params.id, userId]);
+    if (!bookingResult.rowCount) {
+      sendCancelResultPage(res, 404, "預約已不存在", "此預約可能已經取消。");
+      return;
+    }
+
+    sendCancelConfirmationPage(res, mapBooking(bookingResult.rows[0]), userId, signature);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/booking/cancel/:id", async (req, res, next) => {
+  try {
+    const userId = String(req.body.user || "");
+    const signature = String(req.body.signature || "");
+    if (!verifyCancelSignature(req.params.id, userId, signature)) {
+      sendCancelResultPage(res, 403, "取消連結無效", "此取消預約連結無效或已遭修改。");
+      return;
+    }
+
+    const bookingResult = await query(
+      `select bookings.*, users.line_works_user_id
+       from bookings
+       join users on users.id = bookings.user_id
+       where bookings.id = $1`,
+      [req.params.id],
+    );
+    if (!bookingResult.rowCount) {
+      sendCancelResultPage(res, 404, "預約已不存在", "此預約可能已經取消。");
+      return;
+    }
+
+    const target = bookingResult.rows[0];
+    if (target.user_id !== userId) {
+      sendCancelResultPage(res, 403, "無法取消預約", "此取消連結不屬於該預約人。");
+      return;
+    }
+
+    const deleted = await query("delete from bookings where id = $1 returning *", [req.params.id]);
+    const removed = mapBooking(deleted.rows[0]);
+    await query(
+      "insert into audit_logs (id, actor_user_id, action, target_type, target_id, payload) values ($1, $2, $3, $4, $5, $6)",
+      [crypto.randomUUID(), userId, "booking.delete", "booking", removed.id, JSON.stringify(removed)],
+    );
+
+    const content = buildBookingNotification("會議室預約已取消", removed, { accentColor: "#B42318" });
+    Promise.all([
+      target.line_works_user_id ? sendBotMessageToUser(target.line_works_user_id, content) : null,
+      sendBotMessageToAdminChannel(content),
+    ]).catch((error) => console.warn("LINE WORKS cancellation notification skipped:", error.message));
+
+    sendCancelResultPage(
+      res,
+      200,
+      "預約已取消",
+      `${removed.date} ${removed.start}-${removed.end} 的「${escapeHtml(removed.subject)}」已成功取消。`,
+    );
   } catch (error) {
     next(error);
   }
@@ -389,11 +470,12 @@ function normalizeRoom(body) {
 }
 
 function normalizeBooking(body) {
+  const start = String(body?.start || "");
   const booking = {
     roomId: String(body?.roomId || ""),
     date: String(body?.date || ""),
-    start: String(body?.start || ""),
-    end: String(body?.end || ""),
+    start,
+    end: addMinutes(start, 60),
     attendees: Number(body?.attendees),
     host: String(body?.host || "").trim(),
     subject: String(body?.subject || "").trim(),
@@ -587,6 +669,12 @@ function toMinutes(time) {
   return hour * 60 + minute;
 }
 
+function addMinutes(time, amount) {
+  const minutes = toMinutes(time) + amount;
+  if (!Number.isFinite(minutes)) return "";
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
 async function audit(req, action, targetType, targetId, payload) {
   await query(
     "insert into audit_logs (id, actor_user_id, action, target_type, target_id, payload) values ($1, $2, $3, $4, $5, $6)",
@@ -594,11 +682,75 @@ async function audit(req, action, targetType, targetId, payload) {
   );
 }
 
-function notifyBookingChange(user, text) {
+function notifyBookingChange(user, content) {
   Promise.all([
-    user?.lineWorksUserId ? sendBotMessageToUser(user.lineWorksUserId, text) : null,
-    sendBotMessageToAdminChannel(text),
+    user?.lineWorksUserId ? sendBotMessageToUser(user.lineWorksUserId, content) : null,
+    sendBotMessageToAdminChannel(content),
   ]).catch((error) => console.warn("LINE WORKS notification skipped:", error.message));
+}
+
+function sendCancelResultPage(res, status, title, message) {
+  res.status(status).type("html").send(`<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${title}</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f3f6f8; color: #1f2933; }
+      main { max-width: 520px; margin: 12vh auto; padding: 32px 24px; text-align: center; }
+      h1 { margin: 0 0 16px; color: ${status < 400 ? "#0f766e" : "#b42318"}; }
+      p { line-height: 1.7; }
+      a { display: inline-block; margin-top: 18px; padding: 12px 20px; border-radius: 6px; background: #0f766e; color: white; text-decoration: none; }
+    </style>
+  </head>
+  <body><main><h1>${title}</h1><p>${message}</p><a href="/">返回會議室預約</a></main></body>
+</html>`);
+}
+
+function sendCancelConfirmationPage(res, booking, userId, signature) {
+  res.type("html").send(`<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>確認取消預約</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f3f6f8; color: #1f2933; }
+      main { max-width: 520px; margin: 9vh auto; padding: 32px 24px; text-align: center; }
+      h1 { margin: 0 0 16px; }
+      .details { margin: 24px 0; padding: 20px; border: 1px solid #d7e0e7; border-radius: 8px; background: white; text-align: left; line-height: 1.8; }
+      button, a { display: block; box-sizing: border-box; width: 100%; padding: 14px 20px; border-radius: 6px; font: inherit; font-weight: 700; }
+      button { border: 0; background: #e8194b; color: white; cursor: pointer; }
+      a { margin-top: 12px; color: #52606d; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>確認取消預約</h1>
+      <div class="details">
+        <strong>${escapeHtml(booking.subject)}</strong><br>
+        ${booking.date} ${booking.start}-${booking.end}<br>
+        ${booking.attendees} 人
+      </div>
+      <form method="post" action="/booking/cancel/${encodeURIComponent(booking.id)}">
+        <input type="hidden" name="user" value="${escapeHtml(userId)}">
+        <input type="hidden" name="signature" value="${escapeHtml(signature)}">
+        <button type="submit">確認取消預約</button>
+      </form>
+      <a href="/">保留預約並返回</a>
+    </main>
+  </body>
+</html>`);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function requireAdmin(req, res, next) {
