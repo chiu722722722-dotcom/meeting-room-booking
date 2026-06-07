@@ -254,27 +254,6 @@ router.get("/booking/cancel/:id", async (req, res, next) => {
       return;
     }
 
-    const bookingResult = await query("select * from bookings where id = $1 and user_id = $2", [req.params.id, userId]);
-    if (!bookingResult.rowCount) {
-      sendCancelResultPage(res, 404, "預約已不存在", "此預約可能已經取消。");
-      return;
-    }
-
-    sendCancelConfirmationPage(res, mapBooking(bookingResult.rows[0]), userId, signature);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post("/booking/cancel/:id", async (req, res, next) => {
-  try {
-    const userId = String(req.body.user || "");
-    const signature = String(req.body.signature || "");
-    if (!verifyCancelSignature(req.params.id, userId, signature)) {
-      sendCancelResultPage(res, 403, "取消連結無效", "此取消預約連結無效或已遭修改。");
-      return;
-    }
-
     const bookingResult = await query(
       `select bookings.*, users.line_works_user_id
        from bookings
@@ -705,42 +684,6 @@ function sendCancelResultPage(res, status, title, message) {
     </style>
   </head>
   <body><main><h1>${title}</h1><p>${message}</p><a href="/">返回會議室預約</a></main></body>
-</html>`);
-}
-
-function sendCancelConfirmationPage(res, booking, userId, signature) {
-  res.type("html").send(`<!doctype html>
-<html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>確認取消預約</title>
-    <style>
-      body { margin: 0; font-family: system-ui, sans-serif; background: #f3f6f8; color: #1f2933; }
-      main { max-width: 520px; margin: 9vh auto; padding: 32px 24px; text-align: center; }
-      h1 { margin: 0 0 16px; }
-      .details { margin: 24px 0; padding: 20px; border: 1px solid #d7e0e7; border-radius: 8px; background: white; text-align: left; line-height: 1.8; }
-      button, a { display: block; box-sizing: border-box; width: 100%; padding: 14px 20px; border-radius: 6px; font: inherit; font-weight: 700; }
-      button { border: 0; background: #e8194b; color: white; cursor: pointer; }
-      a { margin-top: 12px; color: #52606d; text-decoration: none; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>確認取消預約</h1>
-      <div class="details">
-        <strong>${escapeHtml(booking.subject)}</strong><br>
-        ${booking.date} ${booking.start}-${booking.end}<br>
-        ${booking.attendees} 人
-      </div>
-      <form method="post" action="/booking/cancel/${encodeURIComponent(booking.id)}">
-        <input type="hidden" name="user" value="${escapeHtml(userId)}">
-        <input type="hidden" name="signature" value="${escapeHtml(signature)}">
-        <button type="submit">確認取消預約</button>
-      </form>
-      <a href="/">保留預約並返回</a>
-    </main>
-  </body>
 </html>`);
 }
 
