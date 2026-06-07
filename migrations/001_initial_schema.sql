@@ -48,5 +48,17 @@ create table if not exists audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists booking_reminders (
+  booking_id text primary key references bookings(id) on delete cascade,
+  status text not null default 'pending',
+  attempts integer not null default 0,
+  last_error text,
+  next_attempt_at timestamptz not null default now(),
+  sent_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists bookings_room_date_idx on bookings(room_id, date);
 create index if not exists bookings_date_idx on bookings(date);
+create index if not exists booking_reminders_retry_idx on booking_reminders(status, next_attempt_at);

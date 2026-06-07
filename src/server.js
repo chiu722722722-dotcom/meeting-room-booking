@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
 import { initDatabase, pool } from "./db.js";
+import { startReminderScheduler } from "./reminders.js";
 import { router } from "./routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,6 +57,7 @@ initDatabase()
   .then(() => {
     app.listen(config.port, () => {
       console.log(`Meeting room booking system is running on port ${config.port}`);
+      startReminderScheduler();
     });
   })
   .catch((error) => {

@@ -835,6 +835,7 @@ function getAuditActionLabel(action) {
   return {
     "booking.create": "建立預約",
     "booking.delete": "刪除預約",
+    "booking.reminder_sent": "會議提醒已發送",
     "room.create": "新增會議室",
     "room.update": "編輯會議室",
     "room.disable": "停用會議室",
