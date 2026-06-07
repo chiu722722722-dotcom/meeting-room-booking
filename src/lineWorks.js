@@ -23,6 +23,7 @@ export async function exchangeLineWorksCode(code) {
     client_id: config.lineWorks.clientId,
     client_secret: config.lineWorks.clientSecret,
   });
+  if (config.lineWorks.domain) body.set("domain", config.lineWorks.domain);
 
   const response = await fetch(config.lineWorks.tokenUrl, {
     method: "POST",
