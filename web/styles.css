@@ -296,6 +296,8 @@ textarea:focus {
 
 .sticky-submit {
   position: sticky;
+  display: grid;
+  gap: 10px;
   bottom: env(safe-area-inset-bottom);
   z-index: 5;
   margin: 0 -16px -16px;
