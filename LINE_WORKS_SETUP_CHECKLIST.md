@@ -95,7 +95,7 @@ LINE_WORKS_ADMIN_CHANNEL_ID=通知聊天室 Channel ID
 - `/auth/line-works`
 - `/auth/line-works/callback`
 - LINE WORKS 使用者登入後自動建立或更新本系統帳號
-- WOFF ID：`goQ1qEM2d0e7wBKMM7xv3Q`
+- WOFF ID：`goQlqEM2d0eZwBKMM7xw3Q`
 - WOFF 開啟後使用 LINE WORKS access token 自動建立本站 session
 - 預約建立 / 刪除時呼叫 LINE WORKS Bot 通知
 - Bot 通知支援 Service Account JWT 自動換 access token
