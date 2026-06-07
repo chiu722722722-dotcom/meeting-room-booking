@@ -22,6 +22,7 @@ const storageKeys = {
   currentUser: "meeting-room-current-user",
 };
 
+const WOFF_ID = "goQ1qEM2d0e7wBKMM7xv3Q";
 const timeOptions = buildTimeOptions("08:00", "19:00", 30);
 let rooms = loadLocal(storageKeys.rooms, defaultRooms);
 let bookings = loadLocal(storageKeys.bookings, []);
@@ -103,6 +104,7 @@ const refreshLogsButton = $("#refreshLogs");
 init();
 
 async function init() {
+  await initializeWoffSession();
   const today = toDateValue(new Date());
   dateInput.value = today;
   viewDateInput.value = today;
@@ -111,6 +113,29 @@ async function init() {
   bindEvents();
   await syncFromApi();
   render();
+}
+
+async function initializeWoffSession() {
+  const params = new URLSearchParams(window.location.search);
+  const launchedFromWoff = params.has("woff.state") || params.has("access_token");
+  if (!launchedFromWoff || !window.woff) return;
+
+  try {
+    await window.woff.init({ woffId: WOFF_ID });
+    if (!window.woff.isLoggedIn()) {
+      window.woff.login({ redirectUri: window.location.href });
+      return;
+    }
+    const accessToken = window.woff.getAccessToken();
+    if (!accessToken) return;
+    const data = await apiRequest("/api/auth/woff", {
+      method: "POST",
+      body: JSON.stringify({ accessToken }),
+    });
+    currentUser = data.user;
+  } catch (error) {
+    console.warn("WOFF initialization failed:", error);
+  }
 }
 
 function bindEvents() {

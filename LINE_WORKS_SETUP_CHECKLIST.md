@@ -51,7 +51,7 @@ LINE_WORKS_CLIENT_SECRET=你的 Client Secret
 LINE_WORKS_REDIRECT_URI=https://www.cheapneeder.com/auth/line-works/callback
 LINE_WORKS_AUTHORIZATION_URL=https://auth.worksmobile.com/oauth2/v2.0/authorize
 LINE_WORKS_TOKEN_URL=https://auth.worksmobile.com/oauth2/v2.0/token
-LINE_WORKS_USERINFO_URL=https://www.worksapis.com/v1.0/users/me
+LINE_WORKS_USERINFO_URL=https://auth.worksmobile.com/oauth2/v2.0/userinfo
 ```
 
 設定完成後，後台登入頁會出現「使用 LINE WORKS 登入」。
@@ -95,5 +95,7 @@ LINE_WORKS_ADMIN_CHANNEL_ID=通知聊天室 Channel ID
 - `/auth/line-works`
 - `/auth/line-works/callback`
 - LINE WORKS 使用者登入後自動建立或更新本系統帳號
+- WOFF ID：`goQ1qEM2d0e7wBKMM7xv3Q`
+- WOFF 開啟後使用 LINE WORKS access token 自動建立本站 session
 - 預約建立 / 刪除時呼叫 LINE WORKS Bot 通知
 - Bot 通知支援 Service Account JWT 自動換 access token

@@ -1,4 +1,6 @@
 node_modules/
 .env
+.lineworks-secrets.env
+private/
 .DS_Store
 *.log

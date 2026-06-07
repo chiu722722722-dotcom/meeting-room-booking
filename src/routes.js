@@ -53,6 +53,22 @@ router.post("/api/auth/login", async (req, res, next) => {
   }
 });
 
+router.post("/api/auth/woff", async (req, res, next) => {
+  try {
+    const accessToken = String(req.body?.accessToken || "");
+    if (!accessToken) {
+      res.status(400).json({ ok: false, message: "Missing WOFF access token." });
+      return;
+    }
+    const lineWorksUser = await fetchLineWorksUser(accessToken);
+    const user = await upsertLineWorksUser(lineWorksUser);
+    req.session.user = toSessionUser(user);
+    res.json({ ok: true, user: req.session.user });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/api/auth/me", (req, res) => {
   res.json({ user: req.session.user || null });
 });
@@ -421,7 +437,7 @@ async function validateBooking(booking) {
 }
 
 async function upsertLineWorksUser(lineWorksUser) {
-  const id = lineWorksUser.userId || lineWorksUser.id || lineWorksUser.email;
+  const id = lineWorksUser.userId || lineWorksUser.id || lineWorksUser.sub || lineWorksUser.email;
   const result = await query(
     `insert into users (id, line_works_user_id, username, display_name, email, role, status)
      values ($1, $2, $3, $4, $5, 'user', 'active')
@@ -433,9 +449,9 @@ async function upsertLineWorksUser(lineWorksUser) {
      returning *`,
     [
       id,
-      lineWorksUser.userId || lineWorksUser.id || "",
-      lineWorksUser.email || id,
-      lineWorksUser.userName || lineWorksUser.displayName || lineWorksUser.email || "LINE WORKS User",
+      lineWorksUser.userId || lineWorksUser.id || lineWorksUser.sub || "",
+      lineWorksUser.email || lineWorksUser.preferred_username || id,
+      lineWorksUser.userName || lineWorksUser.displayName || lineWorksUser.name || lineWorksUser.email || "LINE WORKS User",
       lineWorksUser.email || "",
     ],
   );

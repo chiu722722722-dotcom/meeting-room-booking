@@ -11,7 +11,7 @@ export const config = {
     redirectUri: process.env.LINE_WORKS_REDIRECT_URI || "",
     authorizationUrl: process.env.LINE_WORKS_AUTHORIZATION_URL || "https://auth.worksmobile.com/oauth2/v2.0/authorize",
     tokenUrl: process.env.LINE_WORKS_TOKEN_URL || "https://auth.worksmobile.com/oauth2/v2.0/token",
-    userInfoUrl: process.env.LINE_WORKS_USERINFO_URL || "https://www.worksapis.com/v1.0/users/me",
+    userInfoUrl: process.env.LINE_WORKS_USERINFO_URL || "https://auth.worksmobile.com/oauth2/v2.0/userinfo",
     botId: process.env.LINE_WORKS_BOT_ID || "",
     serviceAccountId: process.env.LINE_WORKS_SERVICE_ACCOUNT_ID || "",
     privateKey: process.env.LINE_WORKS_PRIVATE_KEY || "",
